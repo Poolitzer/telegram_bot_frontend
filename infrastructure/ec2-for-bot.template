@@ -1,0 +1,124 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "",
+    "Parameters": {
+        "imageId": {"Type": "String", "Description" : "AMI for ec2 instance"},
+        "instanceSize": {"Type": "String"},
+        "keyName" : {"Type": "String"},
+        "subnetId" : {"Type": "String"},
+        "vpcId" : {"Type": "String"}
+    },
+    "Resources": {
+        "SGR4EC24Bot": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "SecurityGroupIngress": [
+                    {"ToPort": "22", "IpProtocol": "tcp","FromPort": "22", "CidrIp": "0.0.0.0/0"}
+                ],
+                "GroupDescription": "Security Group for ec2",
+                "VpcId": {"Ref": "vpcId"},
+                "SecurityGroupEgress": [{"ToPort": "65535", "IpProtocol": "-1", "CidrIp": "0.0.0.0/0", "FromPort": "0"}],
+                "Tags": [{"Key": "CostReference","Value": "WirVsVirus"}]
+            }
+        },
+        "EC2Instance4Bot": {
+            "Type": "AWS::EC2::Instance",
+            "Metadata": {
+                "Comment": "install",
+                "AWS::CloudFormation::Init": {
+                    "config": {
+                        "packages": {},
+                        "files": {
+                            "/home/ec2-user/install_common.sh": {
+                                "mode"  : "000775",
+                                "owner" : "root",
+                                "group" : "root",
+                                "content": {"Fn::Join": ["\n",[
+                                    "sudo yum install git gcc openssl-devel bzip2-devel libffi-devel -y",
+                                    "cd /opt",
+                                    "sudo wget https://www.python.org/ftp/python/3.8.2/Python-3.8.2.tgz",
+                                    "sudo tar xzf Python-3.8.2.tgz",
+                                    "cd Python-3.8.2",
+                                    "sudo ./configure --enable-optimizations",
+                                    "sudo make altinstall",
+                                    "python3.8 -V",
+                                    "alias python=python3.8",
+                                    "python --version",
+                                    "curl -O https://bootstrap.pypa.io/get-pip.py",
+                                    "#python get-pip.py --user",
+                                    "python get-pip.py",
+                                    "pip3 install poetry",
+                                    "echo 'Installation results:'",
+                                    "git --version",
+                                    "pip3 --version",
+                                    "python --version",
+                                    "poetry --version",
+                                    "\n"
+                                ]]}
+                            },
+                            "/home/ec2-user/pull_bot.sh": {
+                                "mode"  : "000775",
+                                "owner" : "root",
+                                "group" : "root",
+                                "content": {"Fn::Join": ["\n",[
+                                    "",
+                                    "\n"
+                                ]]}
+                            },
+                            "/home/ec2-user/start_bot.sh": {
+                                "mode"  : "000775",
+                                "owner" : "root",
+                                "group" : "root",
+                                "content": {"Fn::Join": ["\n",[
+                                    "",
+                                    "\n"
+                                ]]}
+                            }
+                        },
+                        "commands": {
+                            "01-install_common": {"command": "/home/ec2-user/install_common.sh"},
+                            "02-pull": {"command": "/home/ec2-user/pull_bot.sh"},
+                            "03-start": {"command": "/home/ec2-user/start_bot.sh"},
+                            "04-signal-stack":  {"command": {"Fn::Sub":
+                                "/opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource BotConfiguration --region ${AWS::Region}"
+                            }}
+                        }
+                    }
+                }
+            },
+            "Properties": {
+                "UserData": {
+                    "Fn::Base64": {
+                        "Fn::Join": ["\n",[
+                            "#!/bin/bash ",
+                            "set -x -e  ",
+                            {"Fn::Sub": "/opt/aws/bin/cfn-init --stack ${AWS::StackName} --resource EC2Instance4Bot --region ${AWS::Region}"},
+                            "\n"
+                        ]]
+                    }
+                },
+                "Tags": [
+                    {"Key": "CostReference","Value": "WirVsVirus"}
+                ],
+                "ImageId": {"Ref": "imageId"},
+                "KeyName": {"Ref": "keyName"},
+                "InstanceType": {"Ref": "instanceSize"},
+                "NetworkInterfaces" : [{
+                    "AssociatePublicIpAddress" : "True",
+                    "DeleteOnTermination" : "True",
+                    "SubnetId" : { "Ref" : "subnetId" },
+                    "DeviceIndex" : "0",
+                    "GroupSet" : [ { "Ref" : "SGR4EC24Bot" } ]
+               }]
+            },
+            "DependsOn": ["SGR4EC24Bot"]
+        },
+        "BotConfiguration" : {
+            "Type" : "AWS::CloudFormation::WaitCondition",
+            "CreationPolicy" : {
+                "ResourceSignal" : {"Timeout" : "PT30M", "Count" : "1"}
+            }
+        }
+    },
+    "Outputs" : {}
+}
