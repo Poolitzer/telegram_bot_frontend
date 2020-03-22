@@ -10,5 +10,7 @@ corona.code-workspace
 __pycache__/
 *.py[cod]
 
+# logs
+logs/
 
 .idea
