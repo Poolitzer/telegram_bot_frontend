@@ -117,6 +117,16 @@ conv_handler = ConversationHandler(
     fallbacks=[CommandHandler("cancel", cancel)],
 )
 
+def report_handler(update, context):
+    """Handles the reports of workers"""
+    query = update.callback_query
+    data = update.callback_query.data
+    orig_user_id = update.callback_query.from_user.id
+    # TODO check if user is doctor or admin
+    # TODO logic for reporting users
+
+    query.answer(text="Thank you for your report!")
+
 
 def main():
     """the main event loop"""
