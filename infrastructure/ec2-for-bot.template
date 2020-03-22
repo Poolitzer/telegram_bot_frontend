@@ -13,9 +13,6 @@
         "SGR4EC24Bot": {
             "Type": "AWS::EC2::SecurityGroup",
             "Properties": {
-                "SecurityGroupIngress": [
-                    {"ToPort": "22", "IpProtocol": "tcp","FromPort": "22", "CidrIp": "0.0.0.0/0"}
-                ],
                 "GroupDescription": "Security Group for ec2",
                 "VpcId": {"Ref": "vpcId"},
                 "SecurityGroupEgress": [{"ToPort": "65535", "IpProtocol": "-1", "CidrIp": "0.0.0.0/0", "FromPort": "0"}],
