@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# coding: utf-8
+# -*- coding: utf-8 -*-
 
 """
 telegram bot to connect corona-suspects with medical staff
@@ -36,19 +36,19 @@ filter_no = Filters.regex("^No$")
 
 # methods & commands
 def cancel(update, context):
-    TEXT_CANCEL = """
-        Bye! I hope we can talk again some day.
-        """
+    TEXT_CANCEL = "Bye! I hope we can talk again some day."
     update.message.reply_text(text=textwrap.dedent(TEXT_CANCEL), reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
 
 def are_you_ok(update, context):
+    # TODO check if the user is already waiting for a response and tell them to wait
     TEXT_ARE_YOU_OK = "Hi! Are you feeling Ok?"
     update.message.reply_text(text=textwrap.dedent(TEXT_ARE_YOU_OK), reply_markup=yes_no_keyboard)
     return FEEL_OK
 
 def cough(update, context):
     TEXT_COUGH = "Oh no, I'm sorry about that! Are you having cough or fever?"
+    context.user_data["symptoms"] = "Cough or fever"
     update.message.reply_text(
         text=textwrap.dedent(TEXT_COUGH), reply_markup=yes_no_keyboard
     )
@@ -56,6 +56,7 @@ def cough(update, context):
 
 def stressed(update, context):
     TEXT_STRESSED = "Good! Are you feeling stressed or anxious?"
+    context.user_data["symptoms"] = "Feeling stressed or anxious"
     update.message.reply_text(text=textwrap.dedent(TEXT_STRESSED), reply_markup=yes_no_keyboard)
     return STRESSED_ANXIOUS
 
@@ -178,7 +179,6 @@ def forbidden_handler(update, context):
 
 def main():
     """the main event loop"""
-
     logger.info('Starting corona telegram-bot')
 
     updater = Updater(token=settings.TELEGRAM_BOT_TOKEN, use_context=True)
