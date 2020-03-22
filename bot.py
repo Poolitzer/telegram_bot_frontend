@@ -44,7 +44,10 @@ def cancel(update, context):
     return ConversationHandler.END
 
 def are_you_ok(update, context):
-    TEXT_ARE_YOU_OK = "Hi! {} Are you feeling Ok?".format(emoji.emojize(':simple_smile:'))
+    TEXT_ARE_YOU_OK = f"""
+        Hi! {emoji.emojize(':simple_smile:')}
+        Are you feeling Ok?
+        """
     update.message.reply_text(text=textwrap.dedent(TEXT_ARE_YOU_OK), reply_markup=yes_no_keyboard)
     return FEEL_OK
 
@@ -56,7 +59,7 @@ def cough(update, context):
     return COUGH_FEVER
 
 def stressed(update, context):
-    TEXT_STRESSED = "Good! Are you feeling stressed or anxious? {}".format(emoji.emojize(':worried:'))
+    TEXT_STRESSED = f"Good! Are you feeling stressed or anxious? {emoji.emojize(':worried:')}"
     update.message.reply_text(text=textwrap.dedent(TEXT_STRESSED), reply_markup=yes_no_keyboard)
     return STRESSED_ANXIOUS
 
