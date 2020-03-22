@@ -28,7 +28,7 @@ logging.basicConfig(format="{asctime} {name} {levelname} {message}", style="{", 
 logger = logging.getLogger(__name__)
 
 # definitions
-FEEL_OK, COUGH_FEVER, STRESSED_ANXIOUS, WANNA_HELP, TELL_FRIENDS = range(5)
+AGE, FEEL_OK, COUGH_FEVER, STRESSED_ANXIOUS, WANNA_HELP, TELL_FRIENDS, CASE_DESC = range(7)
 yes_no_keyboard = ReplyKeyboardMarkup([["Yes", "No"]])
 filter_yes = Filters.regex("^Yes$")
 filter_no = Filters.regex("^No$")
@@ -81,8 +81,18 @@ def bye(update, context):
 
 def doctors_room(update, context):
     user = update.effective_user
+    assign_url = helpers.create_deep_linked_url(context.bot.get_me().username, "doctor_" + str(user.id))
+    context.user_data["desc"] = update.message.text
+
+    conversations.new_user(user.id)
     context.bot.send_message(
-        chat_id=settings.TELEGRAM_DOCTOR_ROOM, text=f"A user requested medical help: {user.first_name}"
+        chat_id=settings.TELEGRAM_DOCTOR_ROOM, text=f"A user requested medical help!\n\n"
+                                                    f"Name: {user.first_name}\n"
+                                                    f"Username: @{user.username}\n"
+                                                    f"Case description: {update.message.text}",
+        disable_web_page_preview=True,
+        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Assign Case to me", url=assign_url),
+                                            InlineKeyboardButton(callback_data="report_" + str(user.id), text="Report User")]])
     )
     update.message.reply_text("Forwarded your request to the doctor's room!", reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
@@ -98,31 +108,18 @@ def psychologists_room(update, context):
 def new_members_room(update, context):
     user = update.effective_user
     context.bot.send_message(
-        chat_id=settings.TELEGRAM_NEW_MEMBERS_ROOM, text=f"A user wants to help: {user.first_name}"
+        chat_id=settings.TELEGRAM_NEW_MEMBERS_ROOM, text=f"A user wants to help:\n\nName: {user.first_name}\nUsername: @{user.username}"
     )
     update.message.reply_text("Forwarded your request to the new members' room!", reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
 
 
 conv_handler = ConversationHandler(
-    entry_points=[CommandHandler("start", are_you_ok)],
+    entry_points=[CommandHandler("start", desc)],
     states={
-        FEEL_OK: [
-            MessageHandler(filter_yes, wanna_help),
-            MessageHandler(filter_no, cough)
-            ],
-        WANNA_HELP: [
-            MessageHandler(filter_yes, new_members_room),
-            MessageHandler(filter_no, bye)
-            ],
-        COUGH_FEVER: [
-            MessageHandler(filter_yes, doctors_room),
-            MessageHandler(filter_no, stressed)
-            ],
-        STRESSED_ANXIOUS: [
-            MessageHandler(filter_yes, psychologists_room),
-            MessageHandler(filter_no, bye)
-            ],
+        CASE_DESC: [
+            MessageHandler(Filters.text, doctors_room)
+        ],
     },
     fallbacks=[CommandHandler("cancel", cancel)],
 )
