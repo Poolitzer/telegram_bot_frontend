@@ -16,7 +16,6 @@ https://t.me/humanbios0k
 
 import logging.config
 import textwrap
-import emoji
 
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import (
@@ -54,7 +53,7 @@ def cancel(update, context):
 
 def are_you_ok(update, context):
     TEXT_ARE_YOU_OK = f"""
-        Hi! {emoji.emojize(':simple_smile:')}
+        Hi! 🙂
         Are you feeling Ok?
         """
     update.message.reply_text(
@@ -73,7 +72,7 @@ def cough(update, context):
 
 def stressed(update, context):
     TEXT_STRESSED = (
-        f"Good! Are you feeling stressed or anxious? {emoji.emojize(':worried:')}"
+        f"Good! Are you feeling stressed or anxious? 😟"
     )
     update.message.reply_text(
         text=textwrap.dedent(TEXT_STRESSED), reply_markup=yes_no_keyboard
