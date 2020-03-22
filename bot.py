@@ -17,11 +17,14 @@ https://t.me/humanbios0k
 import logging
 import textwrap
 
-from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, ConversationHandler
+from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, ConversationHandler, CallbackQueryHandler
+from telegram.utils import helpers
 
 from config import settings
+from conversations import Conversations
 
+conversations = Conversations()
 
 # enable logging
 logging.basicConfig(format="{asctime} {name} {levelname} {message}", style="{", level=logging.INFO)
