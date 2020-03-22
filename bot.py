@@ -127,6 +127,23 @@ def report_handler(update, context):
 
     query.answer(text="Thank you for your report!")
 
+def deeplink(update, context):
+    # TODO check if the user requesting to take over is a registered doctor/psychologist
+    # TODO check if the passed user_id is legit
+    # TODO check if the case is already assigned
+    user_id = int(update.message.text.split("_")[1])
+    print(user_id)
+
+    if user_id not in conversations.waiting_queue:
+        if user_id not in conversations.active_conversations:
+            update.message.reply_text("Sorry, but this case is already closed!")
+            return
+        update.message.reply_text("Sorry, but this case is assigned to someone else!")
+        return
+
+    context.user_data["case"] = user_id
+    conversations.new_conversation(update.effective_user.id, user_id)
+    update.message.reply_text("Case assigned to you!")
 
 def chat_handler(update, context):
     """Handles chat messages sent to another user"""
