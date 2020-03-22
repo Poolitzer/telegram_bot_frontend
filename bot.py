@@ -64,6 +64,16 @@ def wanna_help(update, context):
     update.message.reply_text(text=textwrap.dedent(TEXT_WANNA_HELP), reply_markup=yes_no_keyboard)
     return WANNA_HELP
 
+def desc(update, context):
+    print(update)
+    if update.effective_user.id in conversations.waiting_queue:
+        update.message.reply_text(text="Hey there, you are already waiting for an answer. Please be patient.")
+        return ConversationHandler.END
+
+    TEXT_DESC = "Hello there. It seems that you are having medical issues? Please describe your issues in a few words (max. 200)."
+    update.message.reply_text(text=textwrap.dedent(TEXT_DESC))
+    return CASE_DESC
+
 def bye(update, context):
     TEXT_BYE = "Okay, Bye!"
     update.message.reply_text(text=textwrap.dedent(TEXT_BYE), reply_markup=ReplyKeyboardRemove())
