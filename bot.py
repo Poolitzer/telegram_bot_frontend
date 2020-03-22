@@ -19,7 +19,13 @@ import textwrap
 import emoji
 
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, ConversationHandler
+from telegram.ext import (
+    Updater,
+    CommandHandler,
+    MessageHandler,
+    Filters,
+    ConversationHandler,
+)
 
 from config import settings
 
@@ -40,16 +46,22 @@ def cancel(update, context):
     TEXT_CANCEL = """
         Bye! I hope we can talk again some day.
         """
-    update.message.reply_text(text=textwrap.dedent(TEXT_CANCEL), reply_markup=ReplyKeyboardRemove())
+    update.message.reply_text(
+        text=textwrap.dedent(TEXT_CANCEL), reply_markup=ReplyKeyboardRemove()
+    )
     return ConversationHandler.END
+
 
 def are_you_ok(update, context):
     TEXT_ARE_YOU_OK = f"""
         Hi! {emoji.emojize(':simple_smile:')}
         Are you feeling Ok?
         """
-    update.message.reply_text(text=textwrap.dedent(TEXT_ARE_YOU_OK), reply_markup=yes_no_keyboard)
+    update.message.reply_text(
+        text=textwrap.dedent(TEXT_ARE_YOU_OK), reply_markup=yes_no_keyboard
+    )
     return FEEL_OK
+
 
 def cough(update, context):
     TEXT_COUGH = "Oh no, I'm sorry about that! Are you having cough or fever?"
@@ -58,43 +70,69 @@ def cough(update, context):
     )
     return COUGH_FEVER
 
+
 def stressed(update, context):
-    TEXT_STRESSED = f"Good! Are you feeling stressed or anxious? {emoji.emojize(':worried:')}"
-    update.message.reply_text(text=textwrap.dedent(TEXT_STRESSED), reply_markup=yes_no_keyboard)
+    TEXT_STRESSED = (
+        f"Good! Are you feeling stressed or anxious? {emoji.emojize(':worried:')}"
+    )
+    update.message.reply_text(
+        text=textwrap.dedent(TEXT_STRESSED), reply_markup=yes_no_keyboard
+    )
     return STRESSED_ANXIOUS
+
 
 def wanna_help(update, context):
     TEXT_WANNA_HELP = "That's great! Do you wanna help?"
-    update.message.reply_text(text=textwrap.dedent(TEXT_WANNA_HELP), reply_markup=yes_no_keyboard)
+    update.message.reply_text(
+        text=textwrap.dedent(TEXT_WANNA_HELP), reply_markup=yes_no_keyboard
+    )
     return WANNA_HELP
+
 
 def bye(update, context):
     TEXT_BYE = "Okay, Bye!"
-    update.message.reply_text(text=textwrap.dedent(TEXT_BYE), reply_markup=ReplyKeyboardRemove())
+    update.message.reply_text(
+        text=textwrap.dedent(TEXT_BYE), reply_markup=ReplyKeyboardRemove()
+    )
     return ConversationHandler.END
+
 
 def doctors_room(update, context):
     user = update.effective_user
     context.bot.send_message(
-        chat_id=settings.TELEGRAM_DOCTOR_ROOM, text=f"A user requested medical help: {user.first_name}"
+        chat_id=settings.TELEGRAM_DOCTOR_ROOM,
+        text=f"A user requested medical help: {user.first_name}",
     )
-    update.message.reply_text("Forwarded your request to the doctor's room!", reply_markup=ReplyKeyboardRemove())
+    update.message.reply_text(
+        "Forwarded your request to the doctor's room!",
+        reply_markup=ReplyKeyboardRemove(),
+    )
     return ConversationHandler.END
+
 
 def psychologists_room(update, context):
     user = update.effective_user
     context.bot.send_message(
-        chat_id=settings.TELEGRAM_PSYCHOLOGIST_ROOM, text=f"A user requested psychological help: {user.first_name}"
+        chat_id=settings.TELEGRAM_PSYCHOLOGIST_ROOM,
+        text=f"A user requested psychological help: {user.first_name}",
     )
-    update.message.reply_text("Forwarded your request to the psychologists' room!", reply_markup=ReplyKeyboardRemove())
+    update.message.reply_text(
+        "Forwarded your request to the psychologists' room!",
+        reply_markup=ReplyKeyboardRemove(),
+    )
     return ConversationHandler.END
+
 
 def new_members_room(update, context):
     user = update.effective_user
     context.bot.send_message(
-        chat_id=settings.TELEGRAM_NEW_MEMBERS_ROOM, text=f"A user wants to help: {user.first_name}"
+        chat_id=settings.TELEGRAM_NEW_MEMBERS_ROOM,
+        text=f"A user wants to help: {user.first_name}",
     )
-    update.message.reply_text("Forwarded your request to the new members' room!", reply_markup=ReplyKeyboardRemove())
+    update.message.reply_text(
+        "Forwarded your request to the new members' room!",
+        reply_markup=ReplyKeyboardRemove(),
+    )
     return ConversationHandler.END
 
 
@@ -103,20 +141,20 @@ conv_handler = ConversationHandler(
     states={
         FEEL_OK: [
             MessageHandler(filter_yes, wanna_help),
-            MessageHandler(filter_no, cough)
-            ],
+            MessageHandler(filter_no, cough),
+        ],
         WANNA_HELP: [
             MessageHandler(filter_yes, new_members_room),
-            MessageHandler(filter_no, bye)
-            ],
+            MessageHandler(filter_no, bye),
+        ],
         COUGH_FEVER: [
             MessageHandler(filter_yes, doctors_room),
-            MessageHandler(filter_no, stressed)
-            ],
+            MessageHandler(filter_no, stressed),
+        ],
         STRESSED_ANXIOUS: [
             MessageHandler(filter_yes, psychologists_room),
-            MessageHandler(filter_no, bye)
-            ],
+            MessageHandler(filter_no, bye),
+        ],
     },
     fallbacks=[CommandHandler("cancel", cancel)],
 )
@@ -125,7 +163,7 @@ conv_handler = ConversationHandler(
 def main():
     """the main event loop"""
 
-    logging.info('Starting corona telegram-bot')
+    logging.info("Starting corona telegram-bot")
 
     updater = Updater(token=settings.TELEGRAM_BOT_TOKEN, use_context=True)
     dispatcher = updater.dispatcher
@@ -135,5 +173,6 @@ def main():
     updater.start_polling()
     updater.idle()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
