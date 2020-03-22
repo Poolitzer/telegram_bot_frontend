@@ -6,7 +6,8 @@
         "instanceSize": {"Type": "String"},
         "keyName" : {"Type": "String"},
         "subnetId" : {"Type": "String"},
-        "vpcId" : {"Type": "String"}
+        "vpcId" : {"Type": "String"},
+        "telegramBotToken": {"Type": "String", "NoEcho" : "true"}
     },
     "Resources": {
         "SGR4EC24Bot": {
@@ -34,7 +35,8 @@
                                 "owner" : "root",
                                 "group" : "root",
                                 "content": {"Fn::Join": ["\n",[
-                                    "sudo yum install git gcc openssl-devel bzip2-devel libffi-devel -y",
+                                    "sudo yum update",
+                                    "sudo yum install git gcc openssl-devel bzip2-devel libffi-devel polkit -y",
                                     "cd /opt",
                                     "sudo wget https://www.python.org/ftp/python/3.8.2/Python-3.8.2.tgz",
                                     "sudo tar xzf Python-3.8.2.tgz",
@@ -56,12 +58,37 @@
                                     "\n"
                                 ]]}
                             },
+                            "/etc/systemd/system/telegrambot.service": {
+                                "mode"  : "000775",
+                                "owner" : "root",
+                                "group" : "root",
+                                "content": {"Fn::Join": ["\n",[
+                                    "[Unit]",
+                                    "Description=HumanbiOS telegram bot service",
+                                    "After=network.target",
+                                    "[Service]",
+                                    "Type=simple",
+                                    "Restart=always",
+                                    "RestartSec=5",
+                                    "User=root",
+                                    "ExecStart=/home/ec2-user/start_bot.sh",
+                                    "[Install]",
+                                    "WantedBy=multi-user.target",
+                                    "\n"
+                                ]]}
+                            },
                             "/home/ec2-user/pull_bot.sh": {
                                 "mode"  : "000775",
                                 "owner" : "root",
                                 "group" : "root",
                                 "content": {"Fn::Join": ["\n",[
-                                    "",
+                                    "mkdir -p /opt/humanbios/",
+                                    "cd /opt/humanbios/",
+                                    "git clone https://github.com/HumanbiOS/telegram_bot_frontend.git",
+                                    "cd telegram_bot_frontend",
+                                    "ls -la",
+                                    "mkdir logs",
+                                    "chmod a+rw logs",
                                     "\n"
                                 ]]}
                             },
@@ -70,7 +97,14 @@
                                 "owner" : "root",
                                 "group" : "root",
                                 "content": {"Fn::Join": ["\n",[
-                                    "",
+                                    "#!/bin/bash ",
+                                    "BOT_HOME='/opt/humanbios/telegram_bot_frontend'",
+                                    "cd $BOT_HOME",
+                                    "alias python=python3.8",
+                                    "poetry install",
+                                    {"Fn::Sub" : "export TELEGRAM_BOT_TOKEN='${telegramBotToken}'"},
+                                    "poetry run python -m bot > $BOT_HOME/logs/std.log 2>&1",
+                                    "ls -la $BOT_HOME/logs/std.log",
                                     "\n"
                                 ]]}
                             }
@@ -78,8 +112,9 @@
                         "commands": {
                             "01-install_common": {"command": "/home/ec2-user/install_common.sh"},
                             "02-pull": {"command": "/home/ec2-user/pull_bot.sh"},
-                            "03-start": {"command": "/home/ec2-user/start_bot.sh"},
-                            "04-signal-stack":  {"command": {"Fn::Sub":
+                            "03-start-service": {"command": "systemctl start telegrambot"},
+                            "04-enable-service": {"command": "systemctl enable telegrambot"},
+                            "05-signal-stack":  {"command": {"Fn::Sub":
                                 "/opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource BotConfiguration --region ${AWS::Region}"
                             }}
                         }
