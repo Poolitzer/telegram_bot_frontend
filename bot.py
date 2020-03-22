@@ -128,6 +128,30 @@ def report_handler(update, context):
     query.answer(text="Thank you for your report!")
 
 
+def chat_handler(update, context):
+    """Handles chat messages sent to another user"""
+    sender = int(update.effective_user.id)
+    conversation = conversations.get_conversation(sender)
+
+    if conversation is None:
+        return
+
+    if sender == conversation.worker:
+        recipient = conversation.user
+        prefix = "👨‍⚕️: "
+    elif sender == conversation.user:
+        recipient = conversation.worker
+        prefix = "👤: "
+
+    context.bot.send_message(chat_id=recipient, text=prefix + update.message.text)
+
+def stop_conversation(update, context):
+    sender = int(update.effective_user.id)
+    conversations.stop_conversation(sender)
+
+def forbidden_handler(update, context):
+    update.message.reply_text("Sorry but only text is allowed!")
+
 def main():
     """the main event loop"""
 
@@ -137,6 +161,10 @@ def main():
     dispatcher = updater.dispatcher
 
     dispatcher.add_handler(conv_handler)
+
+    # Handle chats between workers and users
+    dispatcher.add_handler(MessageHandler(Filters.text, chat_handler))
+    dispatcher.add_handler(MessageHandler(~Filters.text, forbidden_handler))
 
     updater.start_polling()
     updater.idle()
