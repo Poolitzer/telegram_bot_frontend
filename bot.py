@@ -175,6 +175,14 @@ def chat_handler(update, context):
 
 def stop_conversation(update, context):
     sender = int(update.effective_user.id)
+    conv = conversations.get_conversation(sender)
+    if conv is not None:
+        update.message.reply_text("I ended the conversation!")
+        if conv.worker == sender:
+            recp_id = conv.user
+        else:
+            recp_id = conv.worker
+        context.bot.send_message(chat_id=recp_id, text="Your opponent ended the conversation!")
     conversations.stop_conversation(sender)
 
 def forbidden_handler(update, context):
