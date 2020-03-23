@@ -145,6 +145,10 @@ def deeplink(update, context):
     user_id = int(update.message.text.split("_")[1])
     print(user_id)
 
+    if conversations.has_active_conversation(update.effective_user.id):
+        update.message.reply_text("Sorry, you are already in a conversation. Please use /stop to end it, before starting a new one.")
+        return
+
     if user_id not in conversations.waiting_queue:
         if user_id not in conversations.active_conversations:
             update.message.reply_text("Sorry, but this case is already closed!")
