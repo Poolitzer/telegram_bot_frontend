@@ -8,6 +8,10 @@ class Conversations(object):
         self.waiting_queue = []
         self.active_conversations = []
 
+    def has_active_conversation(self, user):
+        """Checks if a user has active conversations"""
+        return self.get_conversation(user) is not None
+
     def get_conversation(self, user):
         if user is not None:
             user = int(user)
