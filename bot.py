@@ -146,8 +146,16 @@ def doctors_room(update, context):
 
 def psychologists_room(update, context):
     user = update.effective_user
+    assign_url = helpers.create_deep_linked_url(context.bot.get_me().username, "psychologist_" + str(user.id))
+    conversations.new_user(user.id)
     context.bot.send_message(
-        chat_id=settings.TELEGRAM_PSYCHOLOGIST_ROOM, text=f"A user requested psychological help: {user.first_name}"
+        chat_id=settings.TELEGRAM_PSYCHOLOGIST_ROOM, text=f"A user requested psychological help!\n\n"
+                                                          f"Name: {user.first_name}\n"
+                                                          f"Username: @{user.username}\n"
+                                                          f"Case description: {update.message.text}",
+        disable_web_page_preview=True,
+        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Assign Case to me", url=assign_url),
+                                            InlineKeyboardButton(callback_data="report_" + str(user.id), text="Report User")]])
     )
     update.message.reply_text("Forwarded your request to the psychologists' room!", reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
@@ -155,7 +163,12 @@ def psychologists_room(update, context):
 def new_members_room(update, context):
     user = update.effective_user
     context.bot.send_message(
-        chat_id=settings.TELEGRAM_NEW_MEMBERS_ROOM, text=f"A user wants to help:\n\nName: {user.first_name}\nUsername: @{user.username}"
+        chat_id=settings.TELEGRAM_NEW_MEMBERS_ROOM, text=f"A user wants to help:\n\n"
+                                                         f"Name: {user.first_name}\n"
+                                                         f"Username: @{user.username}\n"
+                                                         f"Case description: {update.message.text}",
+        disable_web_page_preview=True,
+        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(callback_data="report_" + str(user.id), text="Report User")]])
     )
     update.message.reply_text("Forwarded your request to the new members' room!", reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
