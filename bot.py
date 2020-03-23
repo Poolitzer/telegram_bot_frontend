@@ -61,7 +61,7 @@ def welcome(update, context):
         return ConversationHandler.END
 
     text_greeting = "Hello there. Thank you for contacting HumanbiOS."
-    context.user_data["decision"] = Decisions.STRESSED_ANXIOUS
+    context.user_data["decision"] = None
     update.message.reply_text(text=text_greeting)
 
     text_are_you_okay = "Are you feeling Ok?"
@@ -83,6 +83,7 @@ def stressed(update, context):
 def wanna_help(update, context):
     # TODO we need some way to invite new members to the group chat
     text_wanna_help = "That's great! Do you wanna help?"
+    context.user_data["decision"] = Decisions.WANNA_HELP
     update.message.reply_text(text=text_wanna_help, reply_markup=yes_no_keyboard)
     return Decisions.WANNA_HELP
 
