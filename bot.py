@@ -222,7 +222,11 @@ def deeplink(update, context):
         return
 
     context.user_data["case"] = user_id
-    conversations.new_conversation(update.effective_user.id, user_id)
+    try:
+        conversations.new_conversation(update.effective_user.id, user_id)
+    except ValueError:
+        update.message.reply_text("You can't talk to yourself! Please wait for someone else to take over your case.")
+        return
     update.message.reply_text("Case assigned to you! You are now connected to the patient!")
     context.bot.send_message(chat_id=user_id, text="Hey, we found a doctor who can help you. You are now connected to them - simply send your messages in "
                                                    "here.")
