@@ -81,6 +81,7 @@ def stressed(update, context):
     return Decisions.STRESSED_ANXIOUS
 
 def wanna_help(update, context):
+    # TODO we need some way to invite new members to the group chat
     text_wanna_help = "That's great! Do you wanna help?"
     update.message.reply_text(text=text_wanna_help, reply_markup=yes_no_keyboard)
     return Decisions.WANNA_HELP
@@ -159,6 +160,7 @@ def psychologists_room(update, context):
     return ConversationHandler.END
 
 def new_members_room(update, context):
+    # TODO We need something similar to the "assign case to me" button for this case
     user = update.effective_user
     context.bot.send_message(
         chat_id=settings.TELEGRAM_NEW_MEMBERS_ROOM, text=f"A user wants to help:\n\n"
