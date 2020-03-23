@@ -129,8 +129,6 @@ def forward(update, context):
 def doctors_room(update, context):
     user = update.effective_user
     assign_url = helpers.create_deep_linked_url(context.bot.get_me().username, "doctor_" + str(user.id))
-    context.user_data["desc"] = update.message.text
-
     conversations.new_user(user.id)
     context.bot.send_message(
         chat_id=settings.TELEGRAM_DOCTOR_ROOM, text=f"A user requested medical help!\n\n"
@@ -221,7 +219,6 @@ def deeplink(update, context):
     # TODO check if the passed user_id is legit
     # TODO check if the case is already assigned
     user_id = int(update.message.text.split("_")[1])
-    print(user_id)
 
     if conversations.has_active_conversation(update.effective_user.id):
         update.message.reply_text("Sorry, you are already in a conversation. Please use /stop to end it, before starting a new one.")
