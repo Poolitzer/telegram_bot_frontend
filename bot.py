@@ -15,7 +15,7 @@ https://t.me/humanbios0k
 """
 
 import logging
-import textwrap
+from enum import IntEnum
 
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, ConversationHandler, CallbackQueryHandler
@@ -31,7 +31,15 @@ logging.basicConfig(format="{asctime} {name} {levelname} {message}", style="{", 
 logger = logging.getLogger(__name__)
 
 # definitions
-AGE, FEEL_OK, COUGH_FEVER, STRESSED_ANXIOUS, WANNA_HELP, TELL_FRIENDS, CASE_DESC = range(7)
+class Decisions(IntEnum):
+    AGE = 1
+    FEEL_OK = 2
+    COUGH_FEVER = 3
+    STRESSED_ANXIOUS = 4
+    WANNA_HELP = 5
+    TELL_FRIENDS = 6
+    CASE_DESC = 7
+
 yes_no_keyboard = ReplyKeyboardMarkup([["Yes", "No"]])
 filter_yes = Filters.regex("^Yes$")
 filter_no = Filters.regex("^No$")
@@ -39,48 +47,83 @@ filter_no = Filters.regex("^No$")
 
 # methods & commands
 def cancel(update, context):
-    TEXT_CANCEL = "Bye! I hope we can talk again some day."
-    update.message.reply_text(text=textwrap.dedent(TEXT_CANCEL), reply_markup=ReplyKeyboardRemove())
+    text_cancel = "Bye! I hope we can talk again some day."
+    update.message.reply_text(text=text_cancel, reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
 
-def are_you_ok(update, context):
-    # TODO check if the user is already waiting for a response and tell them to wait
-    TEXT_ARE_YOU_OK = "Hi! Are you feeling Ok?"
-    update.message.reply_text(text=textwrap.dedent(TEXT_ARE_YOU_OK), reply_markup=yes_no_keyboard)
-    return FEEL_OK
-
-def cough(update, context):
-    TEXT_COUGH = "Oh no, I'm sorry about that! Are you having cough or fever?"
-    context.user_data["symptoms"] = "Cough or fever"
-    update.message.reply_text(
-        text=textwrap.dedent(TEXT_COUGH), reply_markup=yes_no_keyboard
-    )
-    return COUGH_FEVER
-
-def stressed(update, context):
-    TEXT_STRESSED = "Good! Are you feeling stressed or anxious?"
-    context.user_data["symptoms"] = "Feeling stressed or anxious"
-    update.message.reply_text(text=textwrap.dedent(TEXT_STRESSED), reply_markup=yes_no_keyboard)
-    return STRESSED_ANXIOUS
-
-def wanna_help(update, context):
-    TEXT_WANNA_HELP = "That's great! Do you wanna help?"
-    update.message.reply_text(text=textwrap.dedent(TEXT_WANNA_HELP), reply_markup=yes_no_keyboard)
-    return WANNA_HELP
-
-def desc(update, context):
-    print(update)
-    if update.effective_user.id in conversations.waiting_queue:
-        update.message.reply_text(text="Hey there, you are already waiting for an answer. Please be patient.")
+def welcome(update, context):
+    """Greets users, which use the /start command"""
+    if conversations.has_active_conversation(update.effective_user.id):
+        update.message.reply_text("You are already having a conversation. You can end it with /stop.")
+        return ConversationHandler.END
+    elif conversations.is_user_waiting(update.effective_user.id):
+        update.message.reply_text("You are already waiting for an answer. Please be patient. We'll handle you request soon.")
         return ConversationHandler.END
 
-    TEXT_DESC = "Hello there. It seems that you are having medical issues? Please describe your issues in a few words (max. 200)."
-    update.message.reply_text(text=textwrap.dedent(TEXT_DESC))
-    return CASE_DESC
+    text_greeting = "Hello there. Thank you for contacting HumanbiOS."
+    context.user_data["decision"] = Decisions.STRESSED_ANXIOUS
+    update.message.reply_text(text=text_greeting)
+
+    text_are_you_okay = "Are you feeling Ok?"
+    update.message.reply_text(text=text_are_you_okay, reply_markup=yes_no_keyboard)
+    return Decisions.FEEL_OK
+
+def cough(update, context):
+    text_cough = "Oh no, I'm sorry about that! Are you having cough or fever?"
+    context.user_data["decision"] = Decisions.COUGH_FEVER
+    update.message.reply_text(text=text_cough, reply_markup=yes_no_keyboard)
+    return Decisions.COUGH_FEVER
+
+def stressed(update, context):
+    text_stressed = "Good! Are you feeling stressed or anxious?"
+    context.user_data["decision"] = Decisions.STRESSED_ANXIOUS
+    update.message.reply_text(text=text_stressed, reply_markup=yes_no_keyboard)
+    return Decisions.STRESSED_ANXIOUS
+
+def wanna_help(update, context):
+    text_wanna_help = "That's great! Do you wanna help?"
+    update.message.reply_text(text=text_wanna_help, reply_markup=yes_no_keyboard)
+    return Decisions.WANNA_HELP
+
+def desc(update, context):
+    decision = context.user_data.get("decision", None)
+
+    if decision is None:
+        logger.error("Decision is None")
+        return ConversationHandler.END
+    elif decision == Decisions.STRESSED_ANXIOUS:
+        text = "Please tell us a little about your current situation. How are you feeling? Are you afraid? Take a minute to relax and breath. " \
+               "Tell us also about your friends and family"
+    elif decision == Decisions.COUGH_FEVER:
+        text = "Dear patient, we will try to help you as much as we can. Please tell us about your symptoms. Also what is your current body temperature?"
+    elif decision == Decisions.WANNA_HELP:
+        text = "Welcome new member. We are so glad you’re here! Please provide a short description of what you would like to help with and what you can do. " \
+               "Keep it brief and professional"
+    else:
+        logger.error("Unknown desicion {}".format(decision))
+        return ConversationHandler.END
+    update.message.reply_text(text=text, reply_markup=ReplyKeyboardRemove())
+    return Decisions.CASE_DESC
 
 def bye(update, context):
-    TEXT_BYE = "Okay, Bye!"
-    update.message.reply_text(text=textwrap.dedent(TEXT_BYE), reply_markup=ReplyKeyboardRemove())
+    text_bye = "Okay, Bye!"
+    update.message.reply_text(text=text_bye, reply_markup=ReplyKeyboardRemove())
+    return ConversationHandler.END
+
+def forward(update, context):
+    """Forwards a user's data based on their previous decisions to a certain group"""
+    decision = context.user_data.get("decision", None)
+
+    if decision is None:
+        logger.error("Decision is None")
+        return ConversationHandler.END
+    elif decision == Decisions.STRESSED_ANXIOUS:
+        psychologists_room(update, context)
+    elif decision == Decisions.COUGH_FEVER:
+        doctors_room(update, context)
+    elif decision == Decisions.WANNA_HELP:
+        new_members_room(update, context)
+
     return ConversationHandler.END
 
 def doctors_room(update, context):
@@ -117,12 +160,34 @@ def new_members_room(update, context):
     update.message.reply_text("Forwarded your request to the new members' room!", reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
 
+yesfilter = Filters.regex('^Yes$')
+nofilter = Filters.regex('^No$')
 
 conv_handler = ConversationHandler(
-    entry_points=[CommandHandler("start", desc)],
+    entry_points=[CommandHandler("start", welcome)],
     states={
-        CASE_DESC: [
-            MessageHandler(Filters.text, doctors_room)
+        Decisions.FEEL_OK: [
+            MessageHandler(yesfilter, wanna_help),
+            MessageHandler(nofilter, cough)
+        ],
+
+        Decisions.WANNA_HELP: [
+            MessageHandler(yesfilter, desc),
+            MessageHandler(nofilter, bye)
+        ],
+
+        Decisions.COUGH_FEVER: [
+            MessageHandler(yesfilter, desc),
+            MessageHandler(nofilter, stressed)
+        ],
+
+        Decisions.STRESSED_ANXIOUS: [
+            MessageHandler(yesfilter, desc),
+            MessageHandler(nofilter, bye)
+        ],
+
+        Decisions.CASE_DESC: [
+            MessageHandler(Filters.text, forward)
         ],
     },
     fallbacks=[CommandHandler("cancel", cancel)],
