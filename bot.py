@@ -108,7 +108,7 @@ def desc(update, context):
     return Decisions.CASE_DESC
 
 def bye(update, context):
-    text_bye = "Okay, Bye!"
+    text_bye = "Okay, please tell your friends about humanbios!"
     update.message.reply_text(text=text_bye, reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
 
