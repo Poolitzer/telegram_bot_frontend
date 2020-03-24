@@ -274,7 +274,7 @@ def stop_conversation(update, context):
     conversations.stop_conversation(sender)
 
 def forbidden_handler(update, context):
-    update.message.reply_text("Sorry but only text is allowed!")
+    update.message.reply_text("Sorry, I can only handle text messages for now!")
 
 def main():
     """the main event loop"""
@@ -290,8 +290,8 @@ def main():
     dispatcher.add_handler(CommandHandler("stop", stop_conversation))
 
     # Handle chats between workers and users
-    dispatcher.add_handler(MessageHandler(Filters.text, chat_handler))
-    dispatcher.add_handler(MessageHandler(~Filters.text, forbidden_handler))
+    dispatcher.add_handler(MessageHandler(Filters.text & Filters.private, chat_handler))
+    dispatcher.add_handler(MessageHandler(~Filters.text & Filters.private, forbidden_handler))
 
     updater.start_polling()
     updater.idle()
