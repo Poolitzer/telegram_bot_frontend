@@ -3,10 +3,15 @@ from conversation import Conversation
 
 
 class Conversations(object):
+    LIMIT_CONCURRENT_CHATS = 100
 
     def __init__(self):
         self.waiting_queue = []
         self.active_conversations = []
+
+    def limit_reached(self):
+        """Returns True if the number of current active conversations exceed the defined limit"""
+        return len(self.active_conversations) >= Conversations.LIMIT_CONCURRENT_CHATS
 
     def is_user_waiting(self, user):
         return user in self.waiting_queue

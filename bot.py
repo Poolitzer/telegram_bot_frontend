@@ -65,6 +65,11 @@ def cancel(update, context):
 
 def welcome(update, context):
     """Greets users, which use the /start command"""
+    if conversations.limit_reached():
+        update.message.reply_text("Hello there. Sorry but the queue of waiting users is currently just too long. In order to prevent users from becoming "
+                                  "frustrated, because of long waiting times, we decided to not accept new users for now. Please try again soon. Bye.")
+        return ConversationHandler.END
+
     if conversations.has_active_conversation(update.effective_user.id):
         update.message.reply_text("You are already having a conversation. You can end it with /stop.")
         return ConversationHandler.END
