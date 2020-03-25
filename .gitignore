@@ -7,8 +7,11 @@ corona.code-workspace
 .vscode
 
 # python
-__pycache__
+__pycache__/
+*.py[cod]
 
+# logs
+logs/
 
 .idea
 

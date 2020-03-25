@@ -13,7 +13,7 @@ ROOT_DIR = (environ.Path(__file__) - 2)
 # load bot token from .env
 env_path = Path(ROOT_DIR) / '.env'
 dotenv.load_dotenv(env_path)
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 
 # Rooms
 TELEGRAM_DOCTOR_ROOM = os.getenv("TELEGRAM_DOCTOR_ROOM")

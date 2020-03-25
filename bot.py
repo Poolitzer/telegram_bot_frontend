@@ -27,8 +27,19 @@ from conversations import Conversations
 conversations = Conversations()
 
 # enable logging
-logging.basicConfig(format="{asctime} {name} {levelname} {message}", style="{", level=logging.INFO)
-logger = logging.getLogger(__name__)
+project_path = os.path.dirname(os.path.abspath(__file__))
+logdir_path = os.path.join(project_path, "logs")
+logfile_path = os.path.join(logdir_path, "bot.log")
+
+if not os.path.exists(logdir_path):
+    os.makedirs(logdir_path)
+
+logfile_handler = logging.handlers.WatchedFileHandler(logfile_path, 'a', 'utf-8')
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    level=logging.INFO, handlers=[logfile_handler])
+logging.getLogger("telegram").setLevel(logging.WARNING)
+
+
 
 # definitions
 class Decisions(IntEnum):
@@ -74,11 +85,13 @@ def cough(update, context):
     update.message.reply_text(text=text_cough, reply_markup=yes_no_keyboard)
     return Decisions.COUGH_FEVER
 
+
 def stressed(update, context):
     text_stressed = "Good! Are you feeling stressed or anxious?"
     context.user_data["decision"] = Decisions.STRESSED_ANXIOUS
     update.message.reply_text(text=text_stressed, reply_markup=yes_no_keyboard)
     return Decisions.STRESSED_ANXIOUS
+
 
 def wanna_help(update, context):
     # TODO we need some way to invite new members to the group chat
@@ -141,8 +154,12 @@ def doctors_room(update, context):
         reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Assign Case to me", url=assign_url),
                                             InlineKeyboardButton(callback_data="report_" + str(user.id), text="Report User")]])
     )
-    update.message.reply_text("Forwarded your request to the doctor's room!", reply_markup=ReplyKeyboardRemove())
+    update.message.reply_text(
+        "Forwarded your request to the doctor's room!",
+        reply_markup=ReplyKeyboardRemove(),
+    )
     return ConversationHandler.END
+
 
 def psychologists_room(update, context):
     user = update.effective_user
@@ -157,8 +174,12 @@ def psychologists_room(update, context):
         reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Assign Case to me", url=assign_url),
                                             InlineKeyboardButton(callback_data="report_" + str(user.id), text="Report User")]])
     )
-    update.message.reply_text("Forwarded your request to the psychologists' room!", reply_markup=ReplyKeyboardRemove())
+    update.message.reply_text(
+        "Forwarded your request to the psychologists' room!",
+        reply_markup=ReplyKeyboardRemove(),
+    )
     return ConversationHandler.END
+
 
 def new_members_room(update, context):
     # TODO We need something similar to the "assign case to me" button for this case
@@ -171,7 +192,10 @@ def new_members_room(update, context):
         disable_web_page_preview=True,
         reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(callback_data="report_" + str(user.id), text="Report User")]])
     )
-    update.message.reply_text("Forwarded your request to the new members' room!", reply_markup=ReplyKeyboardRemove())
+    update.message.reply_text(
+        "Forwarded your request to the new members' room!",
+        reply_markup=ReplyKeyboardRemove(),
+    )
     return ConversationHandler.END
 
 yesfilter = Filters.regex('^Yes$')
@@ -299,5 +323,6 @@ def main():
     updater.start_polling()
     updater.idle()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
