@@ -258,6 +258,9 @@ def chat_handler(update, context):
     elif sender == conversation.user:
         recipient = conversation.worker
         prefix = "👤: "
+    else:
+        logger.error("The sender is neither a worker nor a user!")
+        return
 
     context.bot.send_message(chat_id=recipient, text=prefix + update.message.text)
 
