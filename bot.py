@@ -149,7 +149,7 @@ def psychologists_room(update, context):
     assign_url = helpers.create_deep_linked_url(context.bot.get_me().username, "psychologist_" + str(user.id))
     conversations.new_user(user.id)
     context.bot.send_message(
-        chat_id=settings.TELEGRAM_PSYCHOLOGIST_ROOM, text=f"A user requested psychological help!\n\n"
+        chat_id=settings.TELEGRAM_PSYCHOLOGIST_ROOM, text=f"A user wants to talk!\n\n"
                                                           f"Name: {user.first_name}\n"
                                                           f"Username: @{user.username}\n"
                                                           f"Case description: {update.message.text}",
