@@ -283,7 +283,7 @@ def main():
     updater = Updater(token=settings.TELEGRAM_BOT_TOKEN, use_context=True)
     dispatcher = updater.dispatcher
 
-    dispatcher.add_handler(CommandHandler("start", deeplink, Filters.regex(r"doctor_\d+")))
+    dispatcher.add_handler(CommandHandler("start", deeplink, Filters.regex(r"doctor_\d+$")))
     dispatcher.add_handler(CommandHandler("start", deeplink, Filters.regex(r"psychologist_\d+$")))
     dispatcher.add_handler(conv_handler)
     dispatcher.add_handler(CallbackQueryHandler(report_handler, pattern=r"^report_\d+$"))
