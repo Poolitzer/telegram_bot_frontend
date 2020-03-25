@@ -16,6 +16,7 @@ https://t.me/humanbios0k
 
 import logging
 from enum import IntEnum
+import os
 
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, ConversationHandler, CallbackQueryHandler
@@ -38,7 +39,7 @@ logfile_handler = logging.handlers.WatchedFileHandler(logfile_path, 'a', 'utf-8'
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO, handlers=[logfile_handler])
 logging.getLogger("telegram").setLevel(logging.WARNING)
-
+logger = logging.getLogger(__name__)
 
 
 # definitions
