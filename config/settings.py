@@ -5,7 +5,6 @@ settings for corona-telegram bot
 import os
 import dotenv
 import environ
-import yaml
 from pathlib import Path
 
 # (corona/config/settings.py - 2 = corona/)
@@ -26,8 +25,3 @@ USE_WEBHOOK = False
 WEBHOOK_PORT = 9001
 WEBHOOK_URL = "https://domain.example.com/" + TELEGRAM_BOT_TOKEN
 CERTPATH = "/etc/certs/example.com/fullchain.cer"
-
-# logging
-log_config_path = Path(ROOT_DIR) / "config" / "logger.yaml"
-with open(log_config_path, "r") as stream:
-    LOGGING = yaml.safe_load(stream.read())

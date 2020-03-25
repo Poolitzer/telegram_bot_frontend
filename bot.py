@@ -17,6 +17,7 @@ https://t.me/humanbios0k
 import logging.config
 import textwrap
 import emoji
+import os
 
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import (
@@ -31,7 +32,18 @@ from config import settings
 
 
 # enable logging
-logging.config.dictConfig(settings.LOGGING)
+project_path = os.path.dirname(os.path.abspath(__file__))
+logdir_path = os.path.join(project_path, "logs")
+logfile_path = os.path.join(logdir_path, "bot.log")
+
+if not os.path.exists(logdir_path):
+    os.makedirs(logdir_path)
+
+logfile_handler = logging.handlers.WatchedFileHandler(logfile_path, 'a', 'utf-8')
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    level=logging.INFO, handlers=[logfile_handler])
+logging.getLogger("telegram").setLevel(logging.WARNING)
+
 
 
 # definitions
