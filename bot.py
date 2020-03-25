@@ -16,6 +16,7 @@ https://t.me/humanbios0k
 
 import logging
 from enum import IntEnum
+import os
 
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, ConversationHandler, CallbackQueryHandler
@@ -38,7 +39,7 @@ logfile_handler = logging.handlers.WatchedFileHandler(logfile_path, 'a', 'utf-8'
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO, handlers=[logfile_handler])
 logging.getLogger("telegram").setLevel(logging.WARNING)
-
+logger = logging.getLogger(__name__)
 
 
 # definitions
@@ -64,6 +65,11 @@ def cancel(update, context):
 
 def welcome(update, context):
     """Greets users, which use the /start command"""
+    if conversations.limit_reached():
+        update.message.reply_text("Hello there. Sorry but the queue of waiting users is currently just too long. In order to prevent users from becoming "
+                                  "frustrated, because of long waiting times, we decided to not accept new users for now. Please try again soon. Bye.")
+        return ConversationHandler.END
+
     if conversations.has_active_conversation(update.effective_user.id):
         update.message.reply_text("You are already having a conversation. You can end it with /stop.")
         return ConversationHandler.END
