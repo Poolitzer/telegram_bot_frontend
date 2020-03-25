@@ -221,7 +221,7 @@ def deeplink(update, context):
     # TODO check if the user requesting to take over is a registered doctor/psychologist
     # TODO check if the passed user_id is legit
     # TODO check if the case is already assigned
-    user_id = int(update.message.text.split("_")[1])
+    user_id = int(update.message.text.split("_")[-1])
 
     if conversations.has_active_conversation(update.effective_user.id):
         update.message.reply_text("Sorry, you are already in a conversation. Please use /stop to end it, before starting a new one.")
