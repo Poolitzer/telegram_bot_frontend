@@ -25,6 +25,8 @@ from telegram.utils import helpers
 from config import settings
 from conversations import Conversations
 
+import text
+
 conversations = Conversations()
 
 # enable logging
@@ -252,6 +254,7 @@ def deeplink(update, context):
     # TODO check if the passed user_id is legit
     # TODO check if the case is already assigned
     user_id = int(update.message.text.split("_")[-1])
+    room_type = update.message.text.split("_")[0]
 
     if conversations.has_active_conversation(update.effective_user.id):
         update.message.reply_text("Sorry, you are already in a conversation. Please use /stop to end it, before starting a new one.")
@@ -271,6 +274,10 @@ def deeplink(update, context):
         update.message.reply_text("You can't talk to yourself! Please wait for someone else to take over your case.")
         return
     update.message.reply_text("Case assigned to you! You are now connected to the patient!")
+
+    if room_type == "psychologist":
+        update.message.reply_text(text.TEXT_CALM_DOWN)
+
     context.bot.send_message(chat_id=user_id, text="Hey, we found a doctor who can help you. You are now connected to them - simply send your messages in "
                                                    "here.")
 
