@@ -5,12 +5,11 @@
 telegram bot to connect corona-suspects with medical staff
 
 Bot url:
-t.me/corona_care_bot
+t.me/HumanbiOS_bot
 
-spec: https://notes.status.im/_zy_XbciTQqQDzVrnTJ7TA?edit
+Specification: https://hackmd.io/p0vKHdtAR4C1ygXadeTncA?view
 
-groups the bot forwards to: (has to be a member of the group)
-https://t.me/humanbios0k
+Bot currently forwards all cases to:  https://t.me/humanbios (Bot has to be a member of the group)
 
 """
 
