@@ -58,7 +58,6 @@ yes_no_keyboard = ReplyKeyboardMarkup([["Yes", "No"]])
 filter_yes = Filters.regex("^Yes$")
 filter_no = Filters.regex("^No$")
 
-worker_case_count = {}
 REPEAT_INTERVAL = 10
 
 
@@ -276,10 +275,11 @@ def deeplink(update, context):
     context.user_data["case"] = user_id
     try:
         conversations.new_conversation(worker_id, user_id)
-        if worker_case_count[worker_id]:
-            worker_case_count[worker_id] += 1
+
+        if context.bot_data.get(worker_id):
+            context.bot_data[worker_id] += 1
         else:
-            worker_case_count[worker_id] = 1
+            context.bot_data[worker_id] = 1
     except ValueError:
         update.message.reply_text("You can't talk to yourself! Please wait for someone else to take over your case.")
         return
@@ -287,7 +287,7 @@ def deeplink(update, context):
 
     if room_type == "psychologist":
         update.message.reply_text(text.TEXT_CALM_DOWN, parse_mode=ParseMode.MARKDOWN)
-    if room_type == "doctor" and worker_case_count[worker_id] % REPEAT_INTERVAL == 1:
+    if room_type == "doctor" and context.bot_data[worker_id] % REPEAT_INTERVAL == 1:
         update.message.reply_text(text.TEXT_EMERGENCY_HEURISTICS, parse_mode=ParseMode.MARKDOWN)
         update.message.reply_text(
             "[WHO treatment recommendations](https://apps.who.int/iris/rest/bitstreams/1272288/retrieve)",
