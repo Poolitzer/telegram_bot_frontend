@@ -1,4 +1,7 @@
 # telegram_bot_frontend
+## Spefification
+
+https://hackmd.io/p0vKHdtAR4C1ygXadeTncA?view
 
 sets up a bot that asks the user for help and sends her to the corresponding channel
 
@@ -16,10 +19,4 @@ set the environment variables in the `.env` file (see: `.env.example`)
 
 start with `docker-compose up`
 
-## shared-pads
 
-collaborative markdown pad:
-https://notes.status.im/_zy_XbciTQqQDzVrnTJ7TA?edit
-
-scheduling bot:
-https://hackmd.io/p0vKHdtAR4C1ygXadeTncA?view
