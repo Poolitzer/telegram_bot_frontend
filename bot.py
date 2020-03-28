@@ -17,7 +17,7 @@ import logging
 from enum import IntEnum
 import os
 
-from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton, ParseMode
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, ConversationHandler, CallbackQueryHandler
 from telegram.utils import helpers
 
@@ -53,9 +53,13 @@ class Decisions(IntEnum):
     TELL_FRIENDS = 6
     CASE_DESC = 7
 
+
 yes_no_keyboard = ReplyKeyboardMarkup([["Yes", "No"]])
 filter_yes = Filters.regex("^Yes$")
 filter_no = Filters.regex("^No$")
+
+worker_case_count = {}
+REPEAT_INTERVAL = 10
 
 
 # methods & commands
@@ -63,6 +67,7 @@ def cancel(update, context):
     text_cancel = "Bye! I hope we can talk again some day."
     update.message.reply_text(text=text_cancel, reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
+
 
 def welcome(update, context):
     """Greets users, which use the /start command"""
@@ -85,6 +90,7 @@ def welcome(update, context):
     text_are_you_okay = "Are you feeling Ok?"
     update.message.reply_text(text=text_are_you_okay, reply_markup=yes_no_keyboard)
     return Decisions.FEEL_OK
+
 
 def cough(update, context):
     text_cough = "Oh no, I'm sorry about that! Are you having cough or fever?"
@@ -254,8 +260,9 @@ def deeplink(update, context):
     # TODO check if the case is already assigned
     user_id = int(update.message.text.split("_")[-1])
     room_type = update.message.text.split("_")[0]
+    worker_id = update.effective_user.id
 
-    if conversations.has_active_conversation(update.effective_user.id):
+    if conversations.has_active_conversation(worker_id):
         update.message.reply_text("Sorry, you are already in a conversation. Please use /stop to end it, before starting a new one.")
         return
 
@@ -268,14 +275,23 @@ def deeplink(update, context):
 
     context.user_data["case"] = user_id
     try:
-        conversations.new_conversation(update.effective_user.id, user_id)
+        conversations.new_conversation(worker_id, user_id)
+        if worker_case_count[worker_id]:
+            worker_case_count[worker_id] += 1
+        else:
+            worker_case_count[worker_id] = 1
     except ValueError:
         update.message.reply_text("You can't talk to yourself! Please wait for someone else to take over your case.")
         return
     update.message.reply_text("Case assigned to you! You are now connected to the patient!")
 
     if room_type == "psychologist":
-        update.message.reply_text(text.TEXT_CALM_DOWN)
+        update.message.reply_text(text.TEXT_CALM_DOWN, parse_mode=ParseMode.MARKDOWN)
+    if room_type == "doctor" and worker_case_count[worker_id] % REPEAT_INTERVAL == 1:
+        update.message.reply_text(text.TEXT_EMERGENCY_HEURISTICS, parse_mode=ParseMode.MARKDOWN)
+        update.message.reply_text(
+            "[WHO treatment recommendations](https://apps.who.int/iris/rest/bitstreams/1272288/retrieve)",
+            parse_mode=ParseMode.MARKDOWN)
 
     context.bot.send_message(chat_id=user_id, text="Hey, we found a doctor who can help you. You are now connected to them - simply send your messages in "
                                                    "here.")
