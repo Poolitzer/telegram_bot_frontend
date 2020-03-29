@@ -24,8 +24,6 @@ from telegram.utils import helpers
 from config import settings
 from conversations import Conversations
 
-import text
-
 conversations = Conversations()
 
 # enable logging
@@ -265,7 +263,11 @@ def deeplink(update, context):
     # TODO check if the passed user_id is legit
     # TODO check if the case is already assigned
     user_id = int(update.message.text.split("_")[-1])
-    room_type = update.message.text.split("_")[0]
+
+    room_type = context.args[0].split("_")[0]
+    logger.setLevel(logging.DEBUG)
+    logger.debug("Room type: {}".format(room_type))
+
     worker_id = update.effective_user.id
 
     if conversations.has_active_conversation(worker_id):
@@ -293,12 +295,13 @@ def deeplink(update, context):
     update.message.reply_text("Case assigned to you! You are now connected to the patient!")
 
     if room_type == "psychologist":
-        update.message.reply_text(text.TEXT_CALM_DOWN, parse_mode=ParseMode.MARKDOWN)
-    if room_type == "doctor" and context.bot_data[worker_id] % REPEAT_INTERVAL == 1:
-        update.message.reply_text(text.TEXT_EMERGENCY_HEURISTICS, parse_mode=ParseMode.MARKDOWN)
         update.message.reply_text(
-            "[WHO treatment recommendations](https://apps.who.int/iris/rest/bitstreams/1272288/retrieve)",
-            parse_mode=ParseMode.MARKDOWN)
+            "[How do you calm someone down?](https://medium.com/@humanbios/how-do-you-calm-someone-down-b178c5a2a3c8)", parse_mode=ParseMode.MARKDOWN)
+    if room_type == "doctor" and context.bot_data[worker_id] % REPEAT_INTERVAL == 1:
+        update.message.reply_text(
+            "[Emergency Heuristics](https://medium.com/@humanbios/emergency-heuristics-2f62e58aa567)", parse_mode=ParseMode.MARKDOWN)
+        update.message.reply_text(
+            "[WHO treatment recommendations](https://apps.who.int/iris/rest/bitstreams/1272288/retrieve)", parse_mode=ParseMode.MARKDOWN)
 
     context.bot.send_message(chat_id=user_id, text="Hey, we found a doctor who can help you. You are now connected to them - simply send your messages in "
                                                    "here.")
@@ -349,8 +352,8 @@ def main():
     updater = Updater(token=settings.TELEGRAM_BOT_TOKEN, use_context=True)
     dispatcher = updater.dispatcher
 
-    dispatcher.add_handler(CommandHandler("start", deeplink, Filters.regex(r"doctor_\d+$")))
-    dispatcher.add_handler(CommandHandler("start", deeplink, Filters.regex(r"psychologist_\d+$")))
+    dispatcher.add_handler(CommandHandler("start", deeplink, Filters.regex(r"doctor_\d+$"), pass_args=True))
+    dispatcher.add_handler(CommandHandler("start", deeplink, Filters.regex(r"psychologist_\d+$"), pass_args=True))
     dispatcher.add_handler(conv_handler)
     dispatcher.add_handler(CallbackQueryHandler(report_handler, pattern=r"^report_\d+$"))
     dispatcher.add_handler(CommandHandler("stop", stop_conversation))
