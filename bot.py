@@ -118,10 +118,11 @@ def desc(update, context):
         logger.error("Decision is None")
         return ConversationHandler.END
     elif decision == Decisions.STRESSED_ANXIOUS:
-        text = "Please tell us a little about your current situation. How are you feeling? Are you afraid? Take a minute to relax and take a few deep breaths. " \
+        text = "Please tell us a little about your current situation. Are you feeling anxious, stressed, or confused? Take a minute to relax and take a few slow and deep breaths. " \
                "Tell us about your friends and family. We are here to help!"
     elif decision == Decisions.COUGH_FEVER:
-        text = "Dear patient, we will try to help you as much as we can. Please tell us about your symptoms. What is your current body temperature?"
+        text = "Dear patient, we will try to help you as much as we can. Please tell us a little more about your symptoms. What is your current body temperature? Have you experienced any of the following? " \
+               "Shortness of breath, persistent cough, chest pain?"
     elif decision == Decisions.WANNA_HELP:
         text = "Welcome new member - we are so glad you’re here! Please provide a short description of what you would like to help with and what you can do. " \
                "Keep it brief and professional please."
@@ -133,7 +134,7 @@ def desc(update, context):
 
 
 def bye(update, context):
-    text_bye = "Okay, please tell your friends and family about humanbios!"
+    text_bye = "Okay, please tell your friends and family about HumanbiOS!"
     update.message.reply_text(text=text_bye, reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
 
