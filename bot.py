@@ -23,6 +23,7 @@ from telegram.utils import helpers
 
 from config import settings
 from conversations import Conversations
+from requesttype import RequestType
 
 conversations = Conversations()
 
@@ -149,7 +150,11 @@ def forward(update, context):
 def doctors_room(update, context):
     user = update.effective_user
     assign_url = helpers.create_deep_linked_url(context.bot.get_me().username, "doctor_" + str(user.id))
-    conversations.new_user(user.id)
+    conversations.new_user(user_id=user.id,
+                           first_name=user.first_name,
+                           last_name=user.last_name,
+                           username=user.username,
+                           request_type=RequestType.MEDICAL)
     context.bot.send_message(
         chat_id=settings.TELEGRAM_DOCTOR_ROOM, text=f"A user requested medical help!\n\n"
                                                     f"Name: {user.first_name}\n"
@@ -169,7 +174,11 @@ def doctors_room(update, context):
 def psychologists_room(update, context):
     user = update.effective_user
     assign_url = helpers.create_deep_linked_url(context.bot.get_me().username, "psychologist_" + str(user.id))
-    conversations.new_user(user.id)
+    conversations.new_user(user_id=user.id,
+                           first_name=user.first_name,
+                           last_name=user.last_name,
+                           username=user.username,
+                           request_type=RequestType.SOCIAL)
     context.bot.send_message(
         chat_id=settings.TELEGRAM_PSYCHOLOGIST_ROOM, text=f"A user wants to talk!\n\n"
                                                           f"Name: {user.first_name}\n"
@@ -291,7 +300,7 @@ def chat_handler(update, context):
         logger.error("The sender is neither a worker nor a user!")
         return
 
-    context.bot.send_message(chat_id=recipient, text=prefix + update.message.text)
+    context.bot.send_message(chat_id=recipient.user_id, text=prefix + update.message.text)
 
 def stop_conversation(update, context):
     sender = int(update.effective_user.id)
@@ -299,10 +308,10 @@ def stop_conversation(update, context):
     if conv is not None:
         update.message.reply_text("I ended the conversation!")
         if conv.worker == sender:
-            recp_id = conv.user
+            recipient = conv.user
         else:
-            recp_id = conv.worker
-        context.bot.send_message(chat_id=recp_id, text="Your opponent ended the conversation!")
+            recipient = conv.worker
+        context.bot.send_message(chat_id=recipient.user_id, text="Your opponent ended the conversation!")
     conversations.stop_conversation(sender)
 
 def forbidden_handler(update, context):
