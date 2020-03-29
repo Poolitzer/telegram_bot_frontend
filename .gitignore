@@ -9,10 +9,10 @@ corona.code-workspace
 # python
 __pycache__/
 *.py[cod]
+venv/
 
 # logs
 logs/
 
+# PyCharm
 .idea
-
-logs/
