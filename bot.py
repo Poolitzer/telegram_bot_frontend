@@ -69,8 +69,8 @@ def cancel(update, context):
 def welcome(update, context):
     """Greets users, which use the /start command"""
     if conversations.limit_reached():
-        update.message.reply_text("Hello there. Sorry but the queue of waiting users is currently just too long. In order to prevent users from becoming "
-                                  "frustrated, because of long waiting times, we decided to not accept new users for now. Please try again soon. Bye.")
+        update.message.reply_text("Hello there. Sorry, but the queue of waiting users is currently just too long. In order to prevent users from becoming "
+                                  "frustrated due to long waiting times, we have decided to not accept new users for now. Please try again soon - Goodbye!")
         return ConversationHandler.END
 
     if conversations.has_active_conversation(update.effective_user.id):
@@ -84,7 +84,7 @@ def welcome(update, context):
     context.user_data["decision"] = None
     update.message.reply_text(text=text_greeting)
 
-    text_are_you_okay = "Are you feeling Ok?"
+    text_are_you_okay = "Are you feeling okay?"
     update.message.reply_text(text=text_are_you_okay, reply_markup=yes_no_keyboard)
     return Decisions.FEEL_OK
 
@@ -105,7 +105,7 @@ def stressed(update, context):
 
 def wanna_help(update, context):
     # TODO we need some way to invite new members to the group chat
-    text_wanna_help = "That's great! Do you wanna help?"
+    text_wanna_help = "That's great! Would you like to help?"
     context.user_data["decision"] = Decisions.WANNA_HELP
     update.message.reply_text(text=text_wanna_help, reply_markup=yes_no_keyboard)
     return Decisions.WANNA_HELP
@@ -118,13 +118,13 @@ def desc(update, context):
         logger.error("Decision is None")
         return ConversationHandler.END
     elif decision == Decisions.STRESSED_ANXIOUS:
-        text = "Please tell us a little about your current situation. How are you feeling? Are you afraid? Take a minute to relax and breath. " \
-               "Tell us also about your friends and family"
+        text = "Please tell us a little about your current situation. How are you feeling? Are you afraid? Take a minute to relax and take a few deep breaths. " \
+               "Tell us about your friends and family. We are here to help!"
     elif decision == Decisions.COUGH_FEVER:
-        text = "Dear patient, we will try to help you as much as we can. Please tell us about your symptoms. Also what is your current body temperature?"
+        text = "Dear patient, we will try to help you as much as we can. Please tell us about your symptoms. What is your current body temperature?"
     elif decision == Decisions.WANNA_HELP:
-        text = "Welcome new member. We are so glad you’re here! Please provide a short description of what you would like to help with and what you can do. " \
-               "Keep it brief and professional"
+        text = "Welcome new member - we are so glad you’re here! Please provide a short description of what you would like to help with and what you can do. " \
+               "Keep it brief and professional please."
     else:
         logger.error("Unknown decision {}".format(decision))
         return ConversationHandler.END
@@ -133,7 +133,7 @@ def desc(update, context):
 
 
 def bye(update, context):
-    text_bye = "Okay, please tell your friends about humanbios!"
+    text_bye = "Okay, please tell your friends and family about humanbios!"
     update.message.reply_text(text=text_bye, reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
 
