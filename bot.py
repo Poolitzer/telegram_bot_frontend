@@ -17,12 +17,14 @@ import logging
 from enum import IntEnum
 import os
 
-from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton, ParseMode
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, ConversationHandler, CallbackQueryHandler
 from telegram.utils import helpers
 
 from config import settings
 from conversations import Conversations
+
+import text
 
 conversations = Conversations()
 
@@ -51,9 +53,12 @@ class Decisions(IntEnum):
     TELL_FRIENDS = 6
     CASE_DESC = 7
 
+
 yes_no_keyboard = ReplyKeyboardMarkup([["Yes", "No"]])
 filter_yes = Filters.regex("^Yes$")
 filter_no = Filters.regex("^No$")
+
+REPEAT_INTERVAL = 10
 
 
 # methods & commands
@@ -61,6 +66,7 @@ def cancel(update, context):
     text_cancel = "Bye! I hope we can talk again some day."
     update.message.reply_text(text=text_cancel, reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
+
 
 def welcome(update, context):
     """Greets users, which use the /start command"""
@@ -84,6 +90,7 @@ def welcome(update, context):
     update.message.reply_text(text=text_are_you_okay, reply_markup=yes_no_keyboard)
     return Decisions.FEEL_OK
 
+
 def cough(update, context):
     text_cough = "Oh no, I'm sorry about that! Are you having cough or fever?"
     context.user_data["decision"] = Decisions.COUGH_FEVER
@@ -105,6 +112,7 @@ def wanna_help(update, context):
     update.message.reply_text(text=text_wanna_help, reply_markup=yes_no_keyboard)
     return Decisions.WANNA_HELP
 
+
 def desc(update, context):
     decision = context.user_data.get("decision", None)
 
@@ -120,15 +128,17 @@ def desc(update, context):
         text = "Welcome new member. We are so glad you’re here! Please provide a short description of what you would like to help with and what you can do. " \
                "Keep it brief and professional"
     else:
-        logger.error("Unknown desicion {}".format(decision))
+        logger.error("Unknown decision {}".format(decision))
         return ConversationHandler.END
     update.message.reply_text(text=text, reply_markup=ReplyKeyboardRemove())
     return Decisions.CASE_DESC
+
 
 def bye(update, context):
     text_bye = "Okay, please tell your friends about humanbios!"
     update.message.reply_text(text=text_bye, reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
+
 
 def forward(update, context):
     """Forwards a user's data based on their previous decisions to a certain group"""
@@ -145,6 +155,7 @@ def forward(update, context):
         new_members_room(update, context)
 
     return ConversationHandler.END
+
 
 def doctors_room(update, context):
     user = update.effective_user
@@ -203,6 +214,7 @@ def new_members_room(update, context):
     )
     return ConversationHandler.END
 
+
 yesfilter = Filters.regex('^Yes$')
 nofilter = Filters.regex('^No$')
 
@@ -236,6 +248,7 @@ conv_handler = ConversationHandler(
     fallbacks=[CommandHandler("cancel", cancel)],
 )
 
+
 def report_handler(update, context):
     """Handles the reports of workers"""
     query = update.callback_query
@@ -246,13 +259,16 @@ def report_handler(update, context):
 
     query.answer(text="Thank you for your report!")
 
+
 def deeplink(update, context):
     # TODO check if the user requesting to take over is a registered doctor/psychologist
     # TODO check if the passed user_id is legit
     # TODO check if the case is already assigned
     user_id = int(update.message.text.split("_")[-1])
+    room_type = update.message.text.split("_")[0]
+    worker_id = update.effective_user.id
 
-    if conversations.has_active_conversation(update.effective_user.id):
+    if conversations.has_active_conversation(worker_id):
         update.message.reply_text("Sorry, you are already in a conversation. Please use /stop to end it, before starting a new one.")
         return
 
@@ -265,13 +281,28 @@ def deeplink(update, context):
 
     context.user_data["case"] = user_id
     try:
-        conversations.new_conversation(update.effective_user.id, user_id)
+        conversations.new_conversation(worker_id, user_id)
+
+        if context.bot_data.get(worker_id):
+            context.bot_data[worker_id] += 1
+        else:
+            context.bot_data[worker_id] = 1
     except ValueError:
         update.message.reply_text("You can't talk to yourself! Please wait for someone else to take over your case.")
         return
     update.message.reply_text("Case assigned to you! You are now connected to the patient!")
+
+    if room_type == "psychologist":
+        update.message.reply_text(text.TEXT_CALM_DOWN, parse_mode=ParseMode.MARKDOWN)
+    if room_type == "doctor" and context.bot_data[worker_id] % REPEAT_INTERVAL == 1:
+        update.message.reply_text(text.TEXT_EMERGENCY_HEURISTICS, parse_mode=ParseMode.MARKDOWN)
+        update.message.reply_text(
+            "[WHO treatment recommendations](https://apps.who.int/iris/rest/bitstreams/1272288/retrieve)",
+            parse_mode=ParseMode.MARKDOWN)
+
     context.bot.send_message(chat_id=user_id, text="Hey, we found a doctor who can help you. You are now connected to them - simply send your messages in "
                                                    "here.")
+
 
 def chat_handler(update, context):
     """Handles chat messages sent to another user"""
@@ -293,6 +324,7 @@ def chat_handler(update, context):
 
     context.bot.send_message(chat_id=recipient, text=prefix + update.message.text)
 
+
 def stop_conversation(update, context):
     sender = int(update.effective_user.id)
     conv = conversations.get_conversation(sender)
@@ -305,8 +337,10 @@ def stop_conversation(update, context):
         context.bot.send_message(chat_id=recp_id, text="Your opponent ended the conversation!")
     conversations.stop_conversation(sender)
 
+
 def forbidden_handler(update, context):
     update.message.reply_text("Sorry, I can only handle text messages for now!")
+
 
 def main():
     """the main event loop"""
