@@ -73,7 +73,7 @@ def demo_winner(update, context):
 
 
 def demo_bye(update, context):
-    text = "Thank you! Stay healty."
+    text = "Thank you! Stay healthy."
     update.message.reply_text(text=text, reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
 
