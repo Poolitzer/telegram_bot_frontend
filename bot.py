@@ -160,7 +160,7 @@ def doctors_room(update, context):
     assign_url = helpers.create_deep_linked_url(context.bot.get_me().username, "doctor_" + str(user.id))
     conversations.new_user(user.id)
     context.bot.send_message(
-        chat_id=settings.TELEGRAM_DOCTOR_ROOM, text=f"A user requested medical help!\n\n"
+        chat_id=settings.TELEGRAM_DOCTOR_ROOM, text=f"A user is requesting medical help!\n\n"
                                                     f"Name: {user.first_name}\n"
                                                     f"Username: @{user.username}\n"
                                                     f"Case description: {update.message.text}",
@@ -303,7 +303,7 @@ def deeplink(update, context):
         update.message.reply_text(
             "[WHO treatment recommendations](https://apps.who.int/iris/rest/bitstreams/1272288/retrieve)", parse_mode=ParseMode.MARKDOWN)
 
-    context.bot.send_message(chat_id=user_id, text="Hey, we found a doctor who can help you. You are now connected to them - simply send your messages in "
+    context.bot.send_message(chat_id=user_id, text="Hello, we have found a doctor who can help you. You are now connected to them - simply send your messages in "
                                                    "here.")
 
 
@@ -337,7 +337,7 @@ def stop_conversation(update, context):
             recp_id = conv.user
         else:
             recp_id = conv.worker
-        context.bot.send_message(chat_id=recp_id, text="Your opponent ended the conversation!")
+        context.bot.send_message(chat_id=recp_id, text="The other party ended the conversation!")
     conversations.stop_conversation(sender)
 
 
