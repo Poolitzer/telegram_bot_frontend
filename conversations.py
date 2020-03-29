@@ -19,6 +19,14 @@ class Conversations(object):
     def is_user_waiting(self, user_id):
         return user_id in self.waiting_queue
 
+    def get_waiting_users(self, waiting_minutes=15):
+        """Returns a list of users waiting for over 15 minutes"""
+        now = int(time.time())
+        tmp_users = []
+        for user in self.waiting_queue:
+            time_diff = now - user.waiting_since
+            if time_diff >= waiting_minutes * 60:
+                tmp_users.append(user)
 
         return tmp_users
 

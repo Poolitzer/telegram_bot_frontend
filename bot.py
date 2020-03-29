@@ -317,6 +317,19 @@ def stop_conversation(update, context):
 def forbidden_handler(update, context):
     update.message.reply_text("Sorry, I can only handle text messages for now!")
 
+def check_waiting_conversations(context):
+    """Check for all users waiting for >15 minutes to notify workers about waiting cases"""
+    long_waiting_users = conversations.get_waiting_users()
+
+    for user in long_waiting_users:
+        text = "User {} (@{}) is waiting for > 15 minutes!".format(user.first_name, user.username)
+        if user.request_type == RequestType.MEDICAL:
+            context.bot.send_message(settings.TELEGRAM_DOCTOR_ROOM, text=text)
+        elif user.request_type == RequestType.SOCIAL:
+            context.bot.send_message(settings.TELEGRAM_PSYCHOLOGIST_ROOM, text=text)
+    print(conv_handler.conversations)
+
+
 def main():
     """the main event loop"""
     logger.info('Starting corona telegram-bot')
@@ -333,6 +346,10 @@ def main():
     # Handle chats between workers and users
     dispatcher.add_handler(MessageHandler(Filters.text & Filters.private, chat_handler))
     dispatcher.add_handler(MessageHandler(~Filters.text & Filters.private, forbidden_handler))
+
+    # Schedule jobs to run periodically in the background
+    job_queue = updater.job_queue
+    job_queue.run_repeating(callback=check_waiting_conversations, interval=60, first=60)
 
     updater.start_polling()
     updater.idle()
