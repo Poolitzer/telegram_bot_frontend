@@ -46,6 +46,30 @@ logging.getLogger("telegram").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 
+def chat_conversation(func):
+    @wraps(func)
+    def wrapper(update: Update, context: Context):
+        sender = int(update.effective_user.id)
+        conversation = conversations.get_conversation(sender)
+
+        if conversation is None:
+            return
+
+        if sender == conversation.worker:
+            recipient = conversation.user
+            prefix = "👨‍⚕️: "
+        elif sender == conversation.user:
+            recipient = conversation.worker
+            prefix = "👤: "
+        else:
+            logger.error("Sender is neither worker, nor user!")
+            return
+
+        func(update, context, sender, recipient, prefix, conversation)
+
+    return wrapper
+
+
 # definitions
 class Decisions(IntEnum):
     AGE = 1
@@ -286,27 +310,40 @@ def deeplink(update, context):
     context.bot.send_message(chat_id=user_id, text="Hey, we found a doctor who can help you. You are now connected to them - simply send your messages in "
                                                    "here.")
 
-def chat_handler(update, context):
+
+@chat_conversation
+def chat_text_handler(update, context, sender, recipient, prefix, conversation):
     """Handles chat messages sent to another user"""
-    sender = int(update.effective_user.id)
-    conversation = conversations.get_conversation(sender)
-
-    if conversation is None:
-        return
-
-    if sender == conversation.worker:
-        recipient = conversation.user
-        prefix = "👨‍⚕️: "
-    elif sender == conversation.user:
-        recipient = conversation.worker
-        prefix = "👤: "
-    else:
-        logger.error("The sender is neither a worker nor a user!")
-        return
-
     context.bot.send_message(chat_id=recipient.user_id, text=prefix + update.message.text)
 
-def stop_conversation(update, context):
+
+@chat_conversation
+def chat_media_handler(update, context, sender, recipient, prefix, conversation):
+    logger.info(update.message)
+
+
+@chat_conversation
+def chat_audio_handler(update, context, sender, recipient, prefix, conversation):
+    context.bot.send_audio(chat_id=recipient.user_id, audio=update.message.audio.file_id)
+
+
+@chat_conversation
+def chat_voice_handler(update, context, sender, recipient, prefix, conversation):
+    context.bot.send_voice(chat_id=recipient.user_id, voice=update.message.voice.file_id)
+
+
+@chat_conversation
+def chat_sticker_handler(update, context, sender, recipient, prefix, conversation):
+    context.bot.send_message(chat_id=recipient.user_id, text=prefix + "sent a sticker")
+    context.bot.send_sticker(chat_id=recipient.user_id, sticker=update.message.sticker.file_id)
+
+@chat_conversation
+def chat_photo_handler(update, context, sender, recipient, prefix, conversation):
+    photo = update.message.photo[-1]
+    context.bot.send_photo(chat_id=recipient.user_id, photo=photo.file_id)
+
+
+def stop_conversation(update: Update, context: Context):
     sender = int(update.effective_user.id)
     conv = conversations.get_conversation(sender)
     if conv is not None:
@@ -351,7 +388,16 @@ def main():
     dispatcher.add_handler(CommandHandler("stop", stop_conversation))
 
     # Handle chats between workers and users
-    dispatcher.add_handler(MessageHandler(Filters.text & Filters.private, chat_handler))
+    dispatcher.add_handler(MessageHandler(Filters.text & Filters.private, chat_text_handler))
+
+    if settings.CHAT_MEDICAL_ENABLE_PHOTOS:
+        dispatcher.add_handler(MessageHandler(Filters.private & Filters.photo, chat_photo_handler))
+
+    if settings.CHAT_SOCIAL_ENABLE_GIFS:
+        dispatcher.add_handler(MessageHandler(Filters.private & Filters.sticker, chat_sticker_handler))
+        dispatcher.add_handler(MessageHandler(Filters.private & Filters.audio, chat_audio_handler))
+        dispatcher.add_handler(MessageHandler(Filters.private & Filters.voice, chat_voice_handler))
+
     dispatcher.add_handler(MessageHandler(~Filters.text & Filters.private, forbidden_handler))
 
     # Schedule jobs to run periodically in the background
