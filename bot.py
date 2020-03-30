@@ -14,15 +14,19 @@ Bot currently forwards all cases to:  https://t.me/humanbios (Bot has to be a me
 """
 
 import logging
-from enum import IntEnum
 import os
+from enum import IntEnum
+from functools import wraps
 
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, ConversationHandler, CallbackQueryHandler
+from telegram import Update
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, ConversationHandler, CallbackQueryHandler, CallbackContext as Context
 from telegram.utils import helpers
 
 from config import settings
+from conversationrequest import ConversationType
 from conversations import Conversations
+from demo import demo_conv_handler
 from requesttype import RequestType
 
 conversations = Conversations()
