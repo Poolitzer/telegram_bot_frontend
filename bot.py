@@ -325,13 +325,13 @@ def check_waiting_conversations(context):
     """Check for all users waiting for >15 minutes to notify workers about waiting cases"""
     long_waiting_reqs = conversations.get_waiting_requests()
 
-    for user in long_waiting_users:
+    for req in long_waiting_reqs:
+        user = req.user
         text = "User {} (@{}) is waiting for > 15 minutes!".format(user.first_name, user.username)
-        if user.request_type == RequestType.MEDICAL:
+        if req.type == ConversationType.MEDICAL:
             context.bot.send_message(settings.TELEGRAM_DOCTOR_ROOM, text=text)
-        elif user.request_type == RequestType.SOCIAL:
+        elif req.type == ConversationType.SOCIAL:
             context.bot.send_message(settings.TELEGRAM_PSYCHOLOGIST_ROOM, text=text)
-    print(conv_handler.conversations)
 
 
 def main():
