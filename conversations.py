@@ -6,11 +6,21 @@ from user import User
 
 
 class Conversations(object):
+    __instance = None
+    _initialized = False
     LIMIT_CONCURRENT_CHATS = 100
 
     def __init__(self):
         self.waiting_queue = []
+        if Conversations._initialized:
+            return
         self.active_conversations = []
+        Conversations._initialized = True
+
+    def __new__(cls):
+        if cls.__instance is None:
+            cls.__instance = super(Conversations, cls).__new__(cls)
+        return cls.__instance
 
     def limit_reached(self):
         """Returns True if the number of current active conversations exceed the defined limit"""
