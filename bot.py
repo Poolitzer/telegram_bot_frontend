@@ -246,6 +246,10 @@ def new_members_room(update, context):
     return ConversationHandler.END
 
 
+def invalid_answer(update: Update, context: Context):
+    text = "Sorry, but that's not any of the expected answers."
+    update.message.reply_text(text=text)
+
 yesfilter = Filters.regex('^Yes$')
 nofilter = Filters.regex('^No$')
 
@@ -276,7 +280,7 @@ conv_handler = ConversationHandler(
             MessageHandler(Filters.text, forward)
         ],
     },
-    fallbacks=[CommandHandler("cancel", cancel)],
+    fallbacks=[CommandHandler("cancel", cancel), MessageHandler(Filters.all, invalid_answer)],
 )
 
 def report_handler(update, context):
