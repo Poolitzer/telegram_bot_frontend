@@ -150,11 +150,11 @@ def forward(update, context):
 def doctors_room(update, context):
     user = update.effective_user
     assign_url = helpers.create_deep_linked_url(context.bot.get_me().username, "doctor_" + str(user.id))
-    conversations.new_user(user_id=user.id,
-                           first_name=user.first_name,
-                           last_name=user.last_name,
-                           username=user.username,
-                           request_type=RequestType.MEDICAL)
+    conversations.request_conversation(user_id=user.id,
+                                       first_name=user.first_name,
+                                       last_name=user.last_name,
+                                       username=user.username,
+                                       type=ConversationType.MEDICAL)
     context.bot.send_message(
         chat_id=settings.TELEGRAM_DOCTOR_ROOM, text=f"A user requested medical help!\n\n"
                                                     f"Name: {user.first_name}\n"
@@ -174,11 +174,11 @@ def doctors_room(update, context):
 def psychologists_room(update, context):
     user = update.effective_user
     assign_url = helpers.create_deep_linked_url(context.bot.get_me().username, "psychologist_" + str(user.id))
-    conversations.new_user(user_id=user.id,
-                           first_name=user.first_name,
-                           last_name=user.last_name,
-                           username=user.username,
-                           request_type=RequestType.SOCIAL)
+    conversations.request_conversation(user_id=user.id,
+                                       first_name=user.first_name,
+                                       last_name=user.last_name,
+                                       username=user.username,
+                                       type=ConversationType.SOCIAL)
     context.bot.send_message(
         chat_id=settings.TELEGRAM_PSYCHOLOGIST_ROOM, text=f"A user wants to talk!\n\n"
                                                           f"Name: {user.first_name}\n"
@@ -265,8 +265,8 @@ def deeplink(update, context):
         update.message.reply_text("Sorry, you are already in a conversation. Please use /stop to end it, before starting a new one.")
         return
 
-    if user_id not in conversations.waiting_queue:
-        if user_id not in conversations.active_conversations:
+    if not conversations.conversation_requests.has_user_request(user_id):
+        if not conversations.has_active_conversation(user_id):
             update.message.reply_text("Sorry, but this case is already closed!")
             return
         update.message.reply_text("Sorry, but this case is assigned to someone else!")
@@ -319,7 +319,7 @@ def forbidden_handler(update, context):
 
 def check_waiting_conversations(context):
     """Check for all users waiting for >15 minutes to notify workers about waiting cases"""
-    long_waiting_users = conversations.get_waiting_users()
+    long_waiting_reqs = conversations.get_waiting_requests()
 
     for user in long_waiting_users:
         text = "User {} (@{}) is waiting for > 15 minutes!".format(user.first_name, user.username)

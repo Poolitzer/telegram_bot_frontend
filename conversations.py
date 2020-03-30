@@ -2,6 +2,9 @@
 import time
 
 from conversation import Conversation
+from conversationrequests import ConversationRequests
+from conversationrequest import ConversationRequest
+from conversationrequest import ConversationType
 from user import User
 
 
@@ -11,9 +14,9 @@ class Conversations(object):
     LIMIT_CONCURRENT_CHATS = 100
 
     def __init__(self):
-        self.waiting_queue = []
         if Conversations._initialized:
             return
+        self.conversation_requests = ConversationRequests()
         self.active_conversations = []
         Conversations._initialized = True
 
@@ -27,18 +30,11 @@ class Conversations(object):
         return len(self.active_conversations) >= Conversations.LIMIT_CONCURRENT_CHATS
 
     def is_user_waiting(self, user_id):
-        return user_id in self.waiting_queue
+        return self.conversation_requests.has_user_request(user_id)
 
-    def get_waiting_users(self, waiting_minutes=15):
-        """Returns a list of users waiting for over 15 minutes"""
-        now = int(time.time())
-        tmp_users = []
-        for user in self.waiting_queue:
-            time_diff = now - user.waiting_since
-            if time_diff >= waiting_minutes * 60:
-                tmp_users.append(user)
-
-        return tmp_users
+    def get_waiting_requests(self, waiting_minutes=15):
+        """Returns a list of requests waiting for over 15 minutes"""
+        return self.conversation_requests.get_waiting_requests(waiting_minutes)
 
     def has_active_conversation(self, user_id):
         """Checks if a user has active conversations"""
@@ -56,19 +52,19 @@ class Conversations(object):
         worker = User(worker_id)
         user = User(user_id)
 
-        conv = Conversation(worker, user)
+        req = self.conversation_requests.get_request_by_user(user.user_id)
+
+        conv = Conversation(worker, user, req.type)
         self.active_conversations.append(conv)
-        self.waiting_queue.remove(user)
+
+        self.conversation_requests.close(req)
 
     def stop_conversation(self, user_id):
         conv = self.get_conversation(user_id)
         if conv is not None:
             self.active_conversations.remove(conv)
 
-    def new_user(self, user_id, first_name, last_name, username, request_type):
-        new_user = User(user_id, first_name, last_name, username, request_type=request_type)
-        if new_user not in self.waiting_queue:
-            self.waiting_queue.append(new_user)
-            return
-
-        raise Exception("User already waiting")
+    def request_conversation(self, user_id, first_name, last_name, username, type):
+        new_user = User(user_id, first_name, last_name, username)
+        req = ConversationRequest(new_user, type)
+        self.conversation_requests.add(req)
