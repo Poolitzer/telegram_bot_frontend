@@ -80,9 +80,8 @@ class Decisions(IntEnum):
     TELL_FRIENDS = 6
     CASE_DESC = 7
 
+
 yes_no_keyboard = ReplyKeyboardMarkup([["Yes", "No"]])
-filter_yes = Filters.regex("^Yes$")
-filter_no = Filters.regex("^No$")
 
 
 # methods & commands
@@ -92,6 +91,7 @@ def cancel(update, context):
     return ConversationHandler.END
 
 def welcome(update, context):
+
     """Greets users, which use the /start command"""
     if conversations.limit_reached():
         update.message.reply_text("Hello there. Sorry but the queue of waiting users is currently just too long. In order to prevent users from becoming "
@@ -114,6 +114,7 @@ def welcome(update, context):
     return Decisions.FEEL_OK
 
 def cough(update, context):
+
     text_cough = "Oh no, I'm sorry about that! Are you having cough or fever?"
     context.user_data["decision"] = Decisions.COUGH_FEVER
     update.message.reply_text(text=text_cough, reply_markup=yes_no_keyboard)
@@ -135,6 +136,7 @@ def wanna_help(update, context):
     return Decisions.WANNA_HELP
 
 def desc(update, context):
+
     decision = context.user_data.get("decision", None)
 
     if decision is None:
@@ -155,11 +157,13 @@ def desc(update, context):
     return Decisions.CASE_DESC
 
 def bye(update, context):
+
     text_bye = "Okay, please tell your friends about humanbios!"
     update.message.reply_text(text=text_bye, reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
 
 def forward(update, context):
+
     """Forwards a user's data based on their previous decisions to a certain group"""
     decision = context.user_data.get("decision", None)
 
@@ -176,6 +180,7 @@ def forward(update, context):
     return ConversationHandler.END
 
 def doctors_room(update, context):
+
     user = update.effective_user
     assign_url = helpers.create_deep_linked_url(context.bot.get_me().username, "doctor_" + str(user.id))
     conversations.request_conversation(user_id=user.id,
@@ -240,6 +245,7 @@ def new_members_room(update, context):
     )
     return ConversationHandler.END
 
+
 yesfilter = Filters.regex('^Yes$')
 nofilter = Filters.regex('^No$')
 
@@ -274,6 +280,7 @@ conv_handler = ConversationHandler(
 )
 
 def report_handler(update, context):
+
     """Handles the reports of workers"""
     query = update.callback_query
     data = update.callback_query.data
@@ -284,6 +291,7 @@ def report_handler(update, context):
     query.answer(text="Thank you for your report!")
 
 def deeplink(update, context):
+
     # TODO check if the user requesting to take over is a registered doctor/psychologist
     # TODO check if the passed user_id is legit
     # TODO check if the case is already assigned
