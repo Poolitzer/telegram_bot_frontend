@@ -318,8 +318,10 @@ def stop_conversation(update, context):
         context.bot.send_message(chat_id=recipient.user_id, text="Your opponent ended the conversation!")
     conversations.stop_conversation(sender)
 
-def forbidden_handler(update, context):
-    update.message.reply_text("Sorry, I can only handle text messages for now!")
+
+def forbidden_handler(update: Update, context: Context):
+    update.message.reply_text("Sorry, I can't handle that type of messages!")
+
 
 def check_waiting_conversations(context):
     """Check for all users waiting for >15 minutes to notify workers about waiting cases"""
