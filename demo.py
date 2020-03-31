@@ -112,7 +112,7 @@ demo_conv_handler = ConversationHandler(
             MessageHandler(Filters.text & Filters.regex(r"Yes|No|Not so sure"), demo_winner)
         ],
         DemoDecisions.WINNER: [
-            MessageHandler(Filters.text & Filters.regex(r"Covid-19|Humanity")), demo_bye)
+            MessageHandler(Filters.text & Filters.regex(r"Covid-19|Humanity"), demo_bye)
         ]
     },
     fallbacks=[CommandHandler(["cancel", "stop"], cancel), MessageHandler(Filters.all, demo_invalid_answer)],
