@@ -23,11 +23,11 @@ from telegram import Update
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, ConversationHandler, CallbackQueryHandler, CallbackContext as Context
 from telegram.utils import helpers
 
+import filters
 from config import settings
 from conversationrequest import ConversationType
 from conversations import Conversations
 from demo import demo_conv_handler
-from requesttype import RequestType
 
 conversations = Conversations()
 
@@ -403,12 +403,18 @@ def main():
     dispatcher.add_handler(MessageHandler(Filters.text & Filters.private, chat_text_handler))
 
     if settings.CHAT_MEDICAL_ENABLE_PHOTOS:
-        dispatcher.add_handler(MessageHandler(Filters.private & Filters.photo, chat_photo_handler))
+        dispatcher.add_handler(MessageHandler(filters.medical & Filters.private & Filters.photo, chat_photo_handler))
+    if settings.CHAT_MEDICAL_ENABLE_GIFS:
+        dispatcher.add_handler(MessageHandler(filters.medical & Filters.private & Filters.animation, chat_gif_handler))
+    if settings.CHAT_MEDICAL_ENABLE_VOICE:
+        dispatcher.add_handler(MessageHandler(filters.medical & Filters.private & Filters.voice, chat_voice_handler))
 
+    if settings.CHAT_SOCIAL_ENABLE_PHOTOS:
+        dispatcher.add_handler(MessageHandler(filters.social & Filters.private & Filters.photo, chat_photo_handler))
     if settings.CHAT_SOCIAL_ENABLE_GIFS:
-        dispatcher.add_handler(MessageHandler(Filters.private & Filters.sticker, chat_sticker_handler))
-        dispatcher.add_handler(MessageHandler(Filters.private & Filters.audio, chat_audio_handler))
-        dispatcher.add_handler(MessageHandler(Filters.private & Filters.voice, chat_voice_handler))
+        dispatcher.add_handler(MessageHandler(filters.social & Filters.private & Filters.animation, chat_gif_handler))
+    if settings.CHAT_SOCIAL_ENABLE_VOICE:
+        dispatcher.add_handler(MessageHandler(filters.social & Filters.private & Filters.voice, chat_voice_handler))
 
     dispatcher.add_handler(MessageHandler(~Filters.text & Filters.private, forbidden_handler))
 
