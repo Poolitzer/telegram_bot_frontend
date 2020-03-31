@@ -21,7 +21,7 @@ filter_no = Filters.regex("^No$")
 
 
 def demo_intro(update, context):
-    text = "Send your favorite picture of Covid!"
+    text = "Send your favorite picture of Covid and use /cancel anytime to leave the demo!"
     update.message.reply_text(text=text, reply_markup=ReplyKeyboardRemove())
     return DemoDecisions.FAVPIC
 
