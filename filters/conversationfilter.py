@@ -30,5 +30,5 @@ class ConversationTypeFilter(BaseFilter):
 
 # Remember to initialize the class.
 conversation_filter = ConversationFilter()
-social_conversation_filter = ConversationTypeFilter(ConversationType.SOCIAL)
-medical_conversation_filter = ConversationTypeFilter(ConversationType.MEDICAL)
+social = ConversationTypeFilter(ConversationType.SOCIAL)
+medical = ConversationTypeFilter(ConversationType.MEDICAL)
