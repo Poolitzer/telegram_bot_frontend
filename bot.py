@@ -355,6 +355,12 @@ def chat_photo_handler(update, context, sender, recipient, prefix, conversation)
     context.bot.send_photo(chat_id=recipient.user_id, photo=photo.file_id)
 
 
+@chat_conversation
+def chat_gif_handler(update, context, sender, recipient, prefix, conversation):
+    animation = update.message.animation
+    context.bot.send_animation(chat_id=recipient.user_id, animation=animation.file_id)
+
+
 def stop_conversation(update: Update, context: Context):
     sender = int(update.effective_user.id)
     conv = conversations.get_conversation(sender)
