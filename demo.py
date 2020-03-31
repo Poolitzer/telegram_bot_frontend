@@ -32,7 +32,7 @@ def demo_family(update, context):
     return DemoDecisions.FAMILY
 
 
-def demo_family_invalid_input(update, context):
+def demo_favpic_invalid_input(update, context):
     text = "Please send me a picture!"
     update.message.reply_text(text=text)
 
@@ -94,7 +94,7 @@ demo_conv_handler = ConversationHandler(
     states={
         DemoDecisions.FAVPIC: [
             MessageHandler(Filters.photo, demo_family),
-            MessageHandler(Filters.all, demo_family_invalid_input)
+            MessageHandler(Filters.all, demo_favpic_invalid_input)
         ],
         DemoDecisions.FAMILY: [
             MessageHandler(Filters.text & (filter_yes | filter_no), demo_amazon)
