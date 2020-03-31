@@ -115,5 +115,5 @@ demo_conv_handler = ConversationHandler(
             MessageHandler(Filters.text & (Filters.regex(r"") | Filters.regex(r"")), demo_bye)
         ]
     },
-    fallbacks=[CommandHandler("cancel", cancel), MessageHandler(Filters.all, demo_invalid_answer)],
+    fallbacks=[CommandHandler(["cancel", "stop"], cancel), MessageHandler(Filters.all, demo_invalid_answer)],
 )
