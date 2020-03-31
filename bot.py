@@ -14,15 +14,20 @@ Bot currently forwards all cases to:  https://t.me/humanbios (Bot has to be a me
 """
 
 import logging
-from enum import IntEnum
 import os
+from enum import IntEnum
+from functools import wraps
 
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton, ParseMode
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, ConversationHandler, CallbackQueryHandler
+from telegram import Update
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, ConversationHandler, CallbackQueryHandler, CallbackContext as Context
 from telegram.utils import helpers
 
+import filters
 from config import settings
+from conversationrequest import ConversationType
 from conversations import Conversations
+from demo import demo_conv_handler
 
 conversations = Conversations()
 
@@ -41,6 +46,32 @@ logging.getLogger("telegram").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 
+def chat_conversation(func):
+    """Decorator that performs checks and prepares data for the called function"""
+
+    @wraps(func)
+    def wrapper(update: Update, context: Context):
+        sender = int(update.effective_user.id)
+        conversation = conversations.get_conversation(sender)
+
+        if conversation is None:
+            return
+
+        if sender == conversation.worker:
+            recipient = conversation.user
+            prefix = "👨‍⚕️: "
+        elif sender == conversation.user:
+            recipient = conversation.worker
+            prefix = "👤: "
+        else:
+            logger.error("Sender is neither worker, nor user!")
+            return
+
+        func(update, context, sender, recipient, prefix, conversation)
+
+    return wrapper
+
+
 # definitions
 class Decisions(IntEnum):
     AGE = 1
@@ -53,8 +84,6 @@ class Decisions(IntEnum):
 
 
 yes_no_keyboard = ReplyKeyboardMarkup([["Yes", "No"]])
-filter_yes = Filters.regex("^Yes$")
-filter_no = Filters.regex("^No$")
 
 REPEAT_INTERVAL = 10
 
@@ -67,6 +96,7 @@ def cancel(update, context):
 
 
 def welcome(update, context):
+
     """Greets users, which use the /start command"""
     if conversations.limit_reached():
         update.message.reply_text("Hello there. Sorry but the queue of waiting users is currently just too long. In order to prevent users from becoming "
@@ -90,6 +120,7 @@ def welcome(update, context):
 
 
 def cough(update, context):
+
     text_cough = "Oh no, I'm sorry about that! Are you having cough or fever?"
     context.user_data["decision"] = Decisions.COUGH_FEVER
     update.message.reply_text(text=text_cough, reply_markup=yes_no_keyboard)
@@ -112,6 +143,7 @@ def wanna_help(update, context):
 
 
 def desc(update, context):
+
     decision = context.user_data.get("decision", None)
 
     if decision is None:
@@ -133,12 +165,14 @@ def desc(update, context):
 
 
 def bye(update, context):
+
     text_bye = "Okay, please tell your friends about humanbios!"
     update.message.reply_text(text=text_bye, reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
 
 
 def forward(update, context):
+
     """Forwards a user's data based on their previous decisions to a certain group"""
     decision = context.user_data.get("decision", None)
 
@@ -156,9 +190,14 @@ def forward(update, context):
 
 
 def doctors_room(update, context):
+
     user = update.effective_user
     assign_url = helpers.create_deep_linked_url(context.bot.get_me().username, "doctor_" + str(user.id))
-    conversations.new_user(user.id)
+    conversations.request_conversation(user_id=user.id,
+                                       first_name=user.first_name,
+                                       last_name=user.last_name,
+                                       username=user.username,
+                                       type=ConversationType.MEDICAL)
     context.bot.send_message(
         chat_id=settings.TELEGRAM_DOCTOR_ROOM, text=f"A user requested medical help!\n\n"
                                                     f"Name: {user.first_name}\n"
@@ -178,7 +217,11 @@ def doctors_room(update, context):
 def psychologists_room(update, context):
     user = update.effective_user
     assign_url = helpers.create_deep_linked_url(context.bot.get_me().username, "psychologist_" + str(user.id))
-    conversations.new_user(user.id)
+    conversations.request_conversation(user_id=user.id,
+                                       first_name=user.first_name,
+                                       last_name=user.last_name,
+                                       username=user.username,
+                                       type=ConversationType.SOCIAL)
     context.bot.send_message(
         chat_id=settings.TELEGRAM_PSYCHOLOGIST_ROOM, text=f"A user wants to talk!\n\n"
                                                           f"Name: {user.first_name}\n"
@@ -213,6 +256,11 @@ def new_members_room(update, context):
     return ConversationHandler.END
 
 
+def invalid_answer(update: Update, context: Context):
+    text = "Sorry, but that's not any of the expected answers."
+    update.message.reply_text(text=text)
+
+
 yesfilter = Filters.regex('^Yes$')
 nofilter = Filters.regex('^No$')
 
@@ -243,11 +291,12 @@ conv_handler = ConversationHandler(
             MessageHandler(Filters.text, forward)
         ],
     },
-    fallbacks=[CommandHandler("cancel", cancel)],
+    fallbacks=[CommandHandler("cancel", cancel), MessageHandler(Filters.all, invalid_answer)],
 )
 
 
 def report_handler(update, context):
+
     """Handles the reports of workers"""
     query = update.callback_query
     data = update.callback_query.data
@@ -259,6 +308,7 @@ def report_handler(update, context):
 
 
 def deeplink(update, context):
+
     # TODO check if the user requesting to take over is a registered doctor/psychologist
     # TODO check if the passed user_id is legit
     # TODO check if the case is already assigned
@@ -274,8 +324,8 @@ def deeplink(update, context):
         update.message.reply_text("Sorry, you are already in a conversation. Please use /stop to end it, before starting a new one.")
         return
 
-    if user_id not in conversations.waiting_queue:
-        if user_id not in conversations.active_conversations:
+    if not conversations.conversation_requests.has_user_request(user_id):
+        if not conversations.has_active_conversation(user_id):
             update.message.reply_text("Sorry, but this case is already closed!")
             return
         update.message.reply_text("Sorry, but this case is assigned to someone else!")
@@ -307,42 +357,73 @@ def deeplink(update, context):
                                                    "here.")
 
 
-def chat_handler(update, context):
+@chat_conversation
+def chat_text_handler(update, context, sender, recipient, prefix, conversation):
     """Handles chat messages sent to another user"""
-    sender = int(update.effective_user.id)
-    conversation = conversations.get_conversation(sender)
-
-    if conversation is None:
-        return
-
-    if sender == conversation.worker:
-        recipient = conversation.user
-        prefix = "👨‍⚕️: "
-    elif sender == conversation.user:
-        recipient = conversation.worker
-        prefix = "👤: "
-    else:
-        logger.error("The sender is neither a worker nor a user!")
-        return
-
-    context.bot.send_message(chat_id=recipient, text=prefix + update.message.text)
+    context.bot.send_message(chat_id=recipient.user_id, text=prefix + update.message.text)
 
 
-def stop_conversation(update, context):
+@chat_conversation
+def chat_media_handler(update, context, sender, recipient, prefix, conversation):
+    logger.info(update.message)
+
+
+@chat_conversation
+def chat_audio_handler(update, context, sender, recipient, prefix, conversation):
+    context.bot.send_audio(chat_id=recipient.user_id, audio=update.message.audio.file_id)
+
+
+@chat_conversation
+def chat_voice_handler(update, context, sender, recipient, prefix, conversation):
+    context.bot.send_voice(chat_id=recipient.user_id, voice=update.message.voice.file_id)
+
+
+@chat_conversation
+def chat_sticker_handler(update, context, sender, recipient, prefix, conversation):
+    context.bot.send_message(chat_id=recipient.user_id, text=prefix + "sent a sticker")
+    context.bot.send_sticker(chat_id=recipient.user_id, sticker=update.message.sticker.file_id)
+
+
+@chat_conversation
+def chat_photo_handler(update, context, sender, recipient, prefix, conversation):
+    photo = update.message.photo[-1]
+    context.bot.send_photo(chat_id=recipient.user_id, photo=photo.file_id)
+
+
+@chat_conversation
+def chat_gif_handler(update, context, sender, recipient, prefix, conversation):
+    animation = update.message.animation
+    context.bot.send_animation(chat_id=recipient.user_id, animation=animation.file_id)
+
+
+def stop_conversation(update: Update, context: Context):
     sender = int(update.effective_user.id)
     conv = conversations.get_conversation(sender)
     if conv is not None:
         update.message.reply_text("I ended the conversation!")
         if conv.worker == sender:
-            recp_id = conv.user
+            recipient = conv.user
         else:
-            recp_id = conv.worker
-        context.bot.send_message(chat_id=recp_id, text="Your opponent ended the conversation!")
+            recipient = conv.worker
+        context.bot.send_message(chat_id=recipient.user_id, text="Your opponent ended the conversation!")
     conversations.stop_conversation(sender)
 
 
-def forbidden_handler(update, context):
-    update.message.reply_text("Sorry, I can only handle text messages for now!")
+def forbidden_handler(update: Update, context: Context):
+    update.message.reply_text("Sorry, I can't handle that type of messages!")
+
+
+def check_waiting_conversations(context):
+    """Check for all users waiting for >15 minutes to notify workers about waiting cases"""
+    long_waiting_reqs = conversations.get_waiting_requests()
+
+    for req in long_waiting_reqs:
+        user = req.user
+        text = "User {} (@{}) is waiting for > 15 minutes!".format(user.first_name, user.username)
+        if req.type == ConversationType.MEDICAL:
+            context.bot.send_message(settings.TELEGRAM_DOCTOR_ROOM, text=text)
+        elif req.type == ConversationType.SOCIAL:
+            context.bot.send_message(settings.TELEGRAM_PSYCHOLOGIST_ROOM, text=text)
 
 
 def main():
@@ -355,12 +436,33 @@ def main():
     dispatcher.add_handler(CommandHandler("start", deeplink, Filters.regex(r"doctor_\d+$"), pass_args=True))
     dispatcher.add_handler(CommandHandler("start", deeplink, Filters.regex(r"psychologist_\d+$"), pass_args=True))
     dispatcher.add_handler(conv_handler)
+    dispatcher.add_handler(demo_conv_handler)
     dispatcher.add_handler(CallbackQueryHandler(report_handler, pattern=r"^report_\d+$"))
     dispatcher.add_handler(CommandHandler("stop", stop_conversation))
 
     # Handle chats between workers and users
-    dispatcher.add_handler(MessageHandler(Filters.text & Filters.private, chat_handler))
+    dispatcher.add_handler(MessageHandler(Filters.text & Filters.private, chat_text_handler))
+
+    if settings.CHAT_MEDICAL_ENABLE_PHOTOS:
+        dispatcher.add_handler(MessageHandler(filters.medical & Filters.private & Filters.photo, chat_photo_handler))
+    if settings.CHAT_MEDICAL_ENABLE_GIFS:
+        dispatcher.add_handler(MessageHandler(filters.medical & Filters.private & Filters.animation, chat_gif_handler))
+    if settings.CHAT_MEDICAL_ENABLE_VOICE:
+        dispatcher.add_handler(MessageHandler(filters.medical & Filters.private & Filters.voice, chat_voice_handler))
+
+    if settings.CHAT_SOCIAL_ENABLE_PHOTOS:
+        dispatcher.add_handler(MessageHandler(filters.social & Filters.private & Filters.photo, chat_photo_handler))
+    if settings.CHAT_SOCIAL_ENABLE_GIFS:
+        dispatcher.add_handler(MessageHandler(filters.social & Filters.private & Filters.animation, chat_gif_handler))
+    if settings.CHAT_SOCIAL_ENABLE_VOICE:
+        dispatcher.add_handler(MessageHandler(filters.social & Filters.private & Filters.voice, chat_voice_handler))
+
+    # Handle all the message types, which are not allowed:
     dispatcher.add_handler(MessageHandler(~Filters.text & Filters.private, forbidden_handler))
+
+    # Schedule jobs to run periodically in the background
+    job_queue = updater.job_queue
+    job_queue.run_repeating(callback=check_waiting_conversations, interval=60, first=60)
 
     updater.start_polling()
     updater.idle()
