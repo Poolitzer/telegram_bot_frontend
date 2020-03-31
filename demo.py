@@ -66,7 +66,7 @@ def demo_michael(update, context):
 
 
 def demo_winner(update, context):
-    text = "Who wins eventually?"
+    text = "Who will win eventually?"
     keyboard = ReplyKeyboardMarkup([["Covid-19", "Humanity"]])
     update.message.reply_text(text=text, reply_markup=keyboard)
     return DemoDecisions.WINNER
