@@ -28,17 +28,6 @@ class ConversationTypeFilter(BaseFilter):
         return conversation.type == self.conversation_type
 
 
-class MedicalConversationFilter(BaseFilter):
-    def filter(self, message):
-        """Returns True if the sender of the message is in a conversation"""
-        conversations = Conversations()
-        conversation = conversations.get_conversation(message.from_user.id)
-        if conversation is None:
-            return False
-
-        return conversation.type == ConversationType.MEDICAL
-
-
 # Remember to initialize the class.
 conversation_filter = ConversationFilter()
 social_conversation_filter = ConversationTypeFilter(ConversationType.SOCIAL)
