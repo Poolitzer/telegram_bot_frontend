@@ -52,7 +52,7 @@ def demo_durable(update, context):
 
 
 def demo_difficult(update, context):
-    text = "What's more difficult do build?"
+    text = "What's more difficult to build?"
     keyboard = ReplyKeyboardMarkup([["Chinese Wall", "Golden-Gate-Bridge"], ["Eiffel Tower", "Colosseum", "Covid-19 vaccine"]])
     update.message.reply_text(text=text, reply_markup=keyboard)
     return DemoDecisions.DIFFICULT
