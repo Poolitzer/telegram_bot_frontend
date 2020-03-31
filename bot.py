@@ -57,12 +57,18 @@ def chat_conversation(func):
         if conversation is None:
             return
 
+        if conversation.type == ConversationType.MEDICAL:
+            prefix = "👩🏻‍⚕️: "
+        elif conversation.type == ConversationType.SOCIAL:
+            prefix = "🧔🏻: "
+        else:
+            logger.error("Conversation is neither social or medical!")
+            return
+
         if sender == conversation.worker:
             recipient = conversation.user
-            prefix = "👨‍⚕️: "
         elif sender == conversation.user:
             recipient = conversation.worker
-            prefix = "👤: "
         else:
             logger.error("Sender is neither worker, nor user!")
             return
