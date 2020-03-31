@@ -47,6 +47,8 @@ logger = logging.getLogger(__name__)
 
 
 def chat_conversation(func):
+    """Decorator that performs checks and prepares data for the called function"""
+
     @wraps(func)
     def wrapper(update: Update, context: Context):
         sender = int(update.effective_user.id)
@@ -349,6 +351,7 @@ def chat_sticker_handler(update, context, sender, recipient, prefix, conversatio
     context.bot.send_message(chat_id=recipient.user_id, text=prefix + "sent a sticker")
     context.bot.send_sticker(chat_id=recipient.user_id, sticker=update.message.sticker.file_id)
 
+
 @chat_conversation
 def chat_photo_handler(update, context, sender, recipient, prefix, conversation):
     photo = update.message.photo[-1]
@@ -422,6 +425,7 @@ def main():
     if settings.CHAT_SOCIAL_ENABLE_VOICE:
         dispatcher.add_handler(MessageHandler(filters.social & Filters.private & Filters.voice, chat_voice_handler))
 
+    # Handle all the message types, which are not allowed:
     dispatcher.add_handler(MessageHandler(~Filters.text & Filters.private, forbidden_handler))
 
     # Schedule jobs to run periodically in the background
