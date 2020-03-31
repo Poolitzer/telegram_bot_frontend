@@ -18,7 +18,7 @@ import os
 from enum import IntEnum
 from functools import wraps
 
-from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton, ParseMode
 from telegram import Update
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, ConversationHandler, CallbackQueryHandler, CallbackContext as Context
 from telegram.utils import helpers
@@ -85,12 +85,15 @@ class Decisions(IntEnum):
 
 yes_no_keyboard = ReplyKeyboardMarkup([["Yes", "No"]])
 
+REPEAT_INTERVAL = 10
+
 
 # methods & commands
 def cancel(update, context):
     text_cancel = "Bye! I hope we can talk again some day."
     update.message.reply_text(text=text_cancel, reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
+
 
 def welcome(update, context):
 
@@ -115,6 +118,7 @@ def welcome(update, context):
     update.message.reply_text(text=text_are_you_okay, reply_markup=yes_no_keyboard)
     return Decisions.FEEL_OK
 
+
 def cough(update, context):
 
     text_cough = "Oh no, I'm sorry about that! Are you having cough or fever?"
@@ -137,6 +141,7 @@ def wanna_help(update, context):
     update.message.reply_text(text=text_wanna_help, reply_markup=yes_no_keyboard)
     return Decisions.WANNA_HELP
 
+
 def desc(update, context):
 
     decision = context.user_data.get("decision", None)
@@ -153,16 +158,18 @@ def desc(update, context):
         text = "Welcome new member. We are so glad you’re here! Please provide a short description of what you would like to help with and what you can do. " \
                "Keep it brief and professional"
     else:
-        logger.error("Unknown desicion {}".format(decision))
+        logger.error("Unknown decision {}".format(decision))
         return ConversationHandler.END
     update.message.reply_text(text=text, reply_markup=ReplyKeyboardRemove())
     return Decisions.CASE_DESC
+
 
 def bye(update, context):
 
     text_bye = "Okay, please tell your friends about humanbios!"
     update.message.reply_text(text=text_bye, reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
+
 
 def forward(update, context):
 
@@ -180,6 +187,7 @@ def forward(update, context):
         new_members_room(update, context)
 
     return ConversationHandler.END
+
 
 def doctors_room(update, context):
 
@@ -252,6 +260,7 @@ def invalid_answer(update: Update, context: Context):
     text = "Sorry, but that's not any of the expected answers."
     update.message.reply_text(text=text)
 
+
 yesfilter = Filters.regex('^Yes$')
 nofilter = Filters.regex('^No$')
 
@@ -285,6 +294,7 @@ conv_handler = ConversationHandler(
     fallbacks=[CommandHandler("cancel", cancel), MessageHandler(Filters.all, invalid_answer)],
 )
 
+
 def report_handler(update, context):
 
     """Handles the reports of workers"""
@@ -296,6 +306,7 @@ def report_handler(update, context):
 
     query.answer(text="Thank you for your report!")
 
+
 def deeplink(update, context):
 
     # TODO check if the user requesting to take over is a registered doctor/psychologist
@@ -303,7 +314,13 @@ def deeplink(update, context):
     # TODO check if the case is already assigned
     user_id = int(update.message.text.split("_")[-1])
 
-    if conversations.has_active_conversation(update.effective_user.id):
+    room_type = context.args[0].split("_")[0]
+    logger.setLevel(logging.DEBUG)
+    logger.debug("Room type: {}".format(room_type))
+
+    worker_id = update.effective_user.id
+
+    if conversations.has_active_conversation(worker_id):
         update.message.reply_text("Sorry, you are already in a conversation. Please use /stop to end it, before starting a new one.")
         return
 
@@ -316,11 +333,26 @@ def deeplink(update, context):
 
     context.user_data["case"] = user_id
     try:
-        conversations.new_conversation(update.effective_user.id, user_id)
+        conversations.new_conversation(worker_id, user_id)
+
+        if context.bot_data.get(worker_id):
+            context.bot_data[worker_id] += 1
+        else:
+            context.bot_data[worker_id] = 1
     except ValueError:
         update.message.reply_text("You can't talk to yourself! Please wait for someone else to take over your case.")
         return
     update.message.reply_text("Case assigned to you! You are now connected to the patient!")
+
+    if room_type == "psychologist":
+        update.message.reply_text(
+            "[How do you calm someone down?](https://medium.com/@humanbios/how-do-you-calm-someone-down-b178c5a2a3c8)", parse_mode=ParseMode.MARKDOWN)
+    if room_type == "doctor" and context.bot_data[worker_id] % REPEAT_INTERVAL == 1:
+        update.message.reply_text(
+            "[Emergency Heuristics](https://medium.com/@humanbios/emergency-heuristics-2f62e58aa567)", parse_mode=ParseMode.MARKDOWN)
+        update.message.reply_text(
+            "[WHO treatment recommendations](https://apps.who.int/iris/rest/bitstreams/1272288/retrieve)", parse_mode=ParseMode.MARKDOWN)
+
     context.bot.send_message(chat_id=user_id, text="Hey, we found a doctor who can help you. You are now connected to them - simply send your messages in "
                                                    "here.")
 
@@ -401,8 +433,8 @@ def main():
     updater = Updater(token=settings.TELEGRAM_BOT_TOKEN, use_context=True)
     dispatcher = updater.dispatcher
 
-    dispatcher.add_handler(CommandHandler("start", deeplink, Filters.regex(r"doctor_\d+$")))
-    dispatcher.add_handler(CommandHandler("start", deeplink, Filters.regex(r"psychologist_\d+$")))
+    dispatcher.add_handler(CommandHandler("start", deeplink, Filters.regex(r"doctor_\d+$"), pass_args=True))
+    dispatcher.add_handler(CommandHandler("start", deeplink, Filters.regex(r"psychologist_\d+$"), pass_args=True))
     dispatcher.add_handler(conv_handler)
     dispatcher.add_handler(demo_conv_handler)
     dispatcher.add_handler(CallbackQueryHandler(report_handler, pattern=r"^report_\d+$"))
