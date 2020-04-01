@@ -15,6 +15,7 @@ Bot currently forwards all cases to:  https://t.me/humanbios (Bot has to be a me
 
 import logging
 import os
+import re
 from enum import IntEnum
 from functools import wraps
 
@@ -28,6 +29,7 @@ from config import settings
 from conversationrequest import ConversationType
 from conversations import Conversations
 from demo import demo_conv_handler
+import graph
 
 conversations = Conversations()
 
@@ -87,6 +89,7 @@ class Decisions(IntEnum):
     WANNA_HELP = 5
     TELL_FRIENDS = 6
     CASE_DESC = 7
+    QUESTION_LOOP = 8
 
 
 yes_no_keyboard = ReplyKeyboardMarkup([["Yes", "No"]])
@@ -159,7 +162,8 @@ def desc(update, context):
         text = "Please tell us a little about your current situation. How are you feeling? Are you afraid? Take a minute to relax and breath. " \
                "Tell us also about your friends and family"
     elif decision == Decisions.COUGH_FEVER:
-        text = "Dear patient, we will try to help you as much as we can. Please tell us about your symptoms. Also what is your current body temperature?"
+        questions(update, context)
+        return Decisions.QUESTION_LOOP
     elif decision == Decisions.WANNA_HELP:
         text = "Welcome new member. We are so glad you’re here! Please provide a short description of what you would like to help with and what you can do. " \
                "Keep it brief and professional"
@@ -175,6 +179,75 @@ def bye(update, context):
     text_bye = "Okay, please tell your friends about humanbios!"
     update.message.reply_text(text=text_bye, reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
+
+
+def questions(update, context):
+    """Puts users in a question loop, based on the graph data"""
+    # doctors_room(update, context)
+    node_id = context.user_data.get("node_id", None)
+    if not node_id:
+        context.user_data["node_id"] = "0"
+        context.user_data["answers"] = {}
+        text = "Dear patient, we will try to help you as much as we can. This bot will ask a series of question now which will help understanding your case. First one: " + graph.get_next_question("0")
+        neighbors = graph.get_next_answer("0")
+        keyboard = [neighbors[neighbor_id]["label"].split("|") for neighbor_id in neighbors]
+        update.message.reply_text(text, reply_markup=ReplyKeyboardMarkup(keyboard))
+        return Decisions.QUESTION_LOOP
+    neighbors = graph.get_next_answer(node_id)
+    keyboard = [neighbors[neighbor_id]["label"].split("|") for neighbor_id in neighbors]
+    next_id = False
+    for neighbor_id in neighbors:
+        pattern = neighbors[neighbor_id]["label"]
+        if re.match(pattern, update.message.text):
+            next_id = neighbor_id
+            break
+    multi = graph.get_multichoice(node_id)
+    finish = "Finish"
+    # needs to be implemented here since finish doesnt match the pattern
+    if multi and update.message.text == finish:
+        update.message.text = context.user_data["answers"][node_id]
+        # we can do [0] since multiple choices are not allowed to have several edges
+        next_id = list(neighbors)[0]
+        multi = False
+    if not next_id:
+        text = "I am sorry, you need to press one of the buttons."
+        update.message.reply_text(text, reply_markup=ReplyKeyboardMarkup(keyboard))
+        return Decisions.QUESTION_LOOP
+    if multi:
+        if node_id in context.user_data["answers"]:
+            # user could send manually a text from an old button we already have saved
+            if update.message.text in context.user_data["answers"][node_id]:
+                text = "I am sorry, you need to press one of the buttons."
+                new_keyboard = [word for word in keyboard[0] if word not in context.user_data["answers"][node_id]]
+                new_keyboard.append(finish)
+                update.message.reply_text(text, reply_markup=ReplyKeyboardMarkup([new_keyboard]))
+                return Decisions.QUESTION_LOOP
+            context.user_data["answers"][node_id] += f", {update.message.text}"
+        else:
+            context.user_data["answers"][node_id] = update.message.text
+        # we can do 0] since multiple choices are not allowed to have several edges
+        new_keyboard = [word for word in keyboard[0] if word not in context.user_data["answers"][node_id]]
+        new_keyboard.append(finish)
+        text = f"Since this is a multiple choice question, please press more options if you want to. Otherwise, " \
+               f"press {finish}"
+        update.message.reply_text(text, reply_markup=ReplyKeyboardMarkup([new_keyboard]))
+        return Decisions.QUESTION_LOOP
+    context.user_data["answers"][node_id] = update.message.text
+    text = graph.get_next_question(next_id)
+    if not text:
+        result = ""
+        for answer_id in context.user_data["answers"]:
+            question = graph.get_next_question(answer_id)
+            answer = context.user_data["answers"][answer_id]
+            result += f"{question}: {answer}\n"
+        update.message.text = result
+        doctors_room(update, context)
+        return ConversationHandler.END
+    new_neighbors = graph.get_next_answer(next_id)
+    keyboard = [new_neighbors[neighbor_id]["label"].split("|") for neighbor_id in new_neighbors]
+    update.message.reply_text(text, reply_markup=ReplyKeyboardMarkup(keyboard))
+    context.user_data["node_id"] = next_id
+    return Decisions.QUESTION_LOOP
 
 
 def forward(update, context):
@@ -208,7 +281,7 @@ def doctors_room(update, context):
         chat_id=settings.TELEGRAM_DOCTOR_ROOM, text=f"A user requested medical help!\n\n"
                                                     f"Name: {user.first_name}\n"
                                                     f"Username: @{user.username}\n"
-                                                    f"Case description: {update.message.text}",
+                                                    f"Q&A:\n{update.message.text}",
         disable_web_page_preview=True,
         reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Assign Case to me", url=assign_url),
                                             InlineKeyboardButton(callback_data="report_" + str(user.id), text="Report User")]])
@@ -295,6 +368,9 @@ conv_handler = ConversationHandler(
 
         Decisions.CASE_DESC: [
             MessageHandler(Filters.text, forward)
+        ],
+        Decisions.QUESTION_LOOP: [
+            MessageHandler(Filters.text & (~Filters.command), questions)
         ],
     },
     fallbacks=[CommandHandler("cancel", cancel), MessageHandler(Filters.all, invalid_answer)],
