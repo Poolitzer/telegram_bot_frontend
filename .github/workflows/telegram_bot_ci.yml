@@ -5,7 +5,7 @@ name: telegram_bot_frontend
 
 on:
   push:
-    branches: [ master, feat/add-ci ]
+    branches: [ master ]
   pull_request:
     branches: [ master ]
 
