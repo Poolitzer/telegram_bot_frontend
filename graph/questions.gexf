@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gexf xmlns="http://www.gexf.net/1.2draft" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.gexf.net/1.2draft http://www.gexf.net/1.2draft/gexf.xsd" version="1.2">
+  <graph defaultedgetype="directed">
+    <attributes class="node">
+      <attribute id="0" title="multichoice" type="boolean">
+        <default>false</default>
+      </attribute>
+    </attributes>
+    <nodes>
+      <node id="0" label="How old are you?"/>
+      <node id="1" label="What is your current living situation?"/>
+      <node id="2" label="At least once a week, do you privately care for high-risk people?"/>
+      <node id="3" label="Do you work in one of the following areas?"/>
+      <node id="4" label="Do you smoke?"/>
+      <node id="5" label="Are you pregnant?"/>
+      <node id="6" label="Have you had close contact with a confirmed case??">
+        <attvalues>
+          <attvalue for="0" value="true"/>
+        </attvalues>
+      </node>
+    </nodes>
+    <edges>
+      <edge id="0" source="0" target="1" label="Under 40|40-50|51-60|61-70|71-80|Over 80"/>
+      <edge id="1" source="1" target="2" label="Living alone|Living with people"/>
+      <edge id="2" source="2" target="3" label="Yes|No"/>
+      <edge id="3" source="3" target="4" label="Medical field|Community facility|Somewhere else"/>
+      <edge id="4" source="4" target="5" label="Yes|No"/>
+      <edge id="5" source="5" target="6" label="Yes|No|I don't know"/>
+      <edge id="6" source="6" target="7" label="Yes|No"/>
+    </edges>
+  </graph>
+</gexf>
+
