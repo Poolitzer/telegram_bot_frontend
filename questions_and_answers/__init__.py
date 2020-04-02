@@ -5,10 +5,10 @@ from pathlib import Path as _Path
 ROOT_DIR = (_environ.Path(__file__) - 2)
 
 # get the actual file path
-path = _Path(ROOT_DIR) / 'Questions'
+path = _Path(ROOT_DIR) / 'questions_and_answers'
 
 
-class Questions:
+class Strings:
 
     def __init__(self):
         self.languages = {}
@@ -19,5 +19,5 @@ class Questions:
             language = file.stem
             self.languages[language] = json.load(file.open())
 
-    def get_question(self, language, question_id):
-        return self.languages[language][question_id]
+    def get_string(self, language, string_id):
+        return self.languages[language][string_id]

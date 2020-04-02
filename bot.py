@@ -29,32 +29,11 @@ from conversationrequest import ConversationType
 from conversations import Conversations
 from demo import demo_conv_handler
 import graph
-from Questions import Questions
+from questions_and_answers import Strings
 
 conversations = Conversations()
-question_strings = Questions()
+qa_strings = Strings()
 
-
-# simulating the same for answers
-class Answers:
-
-    def __init__(self):
-        self.answer_dict = {"AGE_ANSWER": ["Under 40", "40-50", "51-60", "61-70", "71-80", "Over 80"],
-                            "LIVING_ANSWER": ["Living alone", "Living with people"],
-                            "CARETAKING_ANSWER": ["Yes", "No"],
-                            "CROWDED_WORKPLACE_ANSWER": ["Yes", "No"],
-                            "SMOKING_ANSWER": ["Yes", "No"],
-                            "GENDER_ANSWER_MALE": ["Male"],
-                            "GENDER_ANSWER_FEMALE": ["Female"],
-                            "PREGNANT_ANSWER": ["Yes", "No", "Maybe"],
-                            "CONFIRMED_CASE_ANSWER": ["Yes", "No"]}
-        self.language = {"English": self.answer_dict}
-
-    def get_answer(self, language, answer_id):
-        return self.language[language][answer_id]
-
-
-answers = Answers()
 
 # enable logging
 project_path = os.path.dirname(os.path.abspath(__file__))
@@ -107,7 +86,7 @@ def chat_conversation(func):
 class Decisions(IntEnum):
     AGE = 1
     FEEL_OK = 2
-    COUGH_FEVER = 3
+    MEDICAL = 3
     STRESSED_ANXIOUS = 4
     WANNA_HELP = 5
     TELL_FRIENDS = 6
@@ -151,16 +130,15 @@ def welcome(update, context):
     return Decisions.FEEL_OK
 
 
-def cough(update, context):
-
-    text_cough = "Oh no, I'm sorry about that! Are you having cough or fever?"
-    context.user_data["decision"] = Decisions.COUGH_FEVER
-    update.message.reply_text(text=text_cough, reply_markup=yes_no_keyboard)
-    return Decisions.COUGH_FEVER
+def medical_issue(update, context):
+    text_medical = "Oh no, I'm sorry about that! Can we help you, medical?"
+    context.user_data["decision"] = Decisions.MEDICAL
+    update.message.reply_text(text=text_medical, reply_markup=yes_no_keyboard)
+    return Decisions.MEDICAL
 
 
 def stressed(update, context):
-    text_stressed = "Good! Are you feeling stressed or anxious?"
+    text_stressed = "Okay. Are you feeling stressed or anxious?"
     context.user_data["decision"] = Decisions.STRESSED_ANXIOUS
     update.message.reply_text(text=text_stressed, reply_markup=yes_no_keyboard)
     return Decisions.STRESSED_ANXIOUS
@@ -184,7 +162,7 @@ def desc(update, context):
     elif decision == Decisions.STRESSED_ANXIOUS:
         text = "Please tell us a little about your current situation. How are you feeling? Are you afraid? Take a minute to relax and breath. " \
                "Tell us also about your friends and family"
-    elif decision == Decisions.COUGH_FEVER:
+    elif decision == Decisions.MEDICAL:
         questions(update, context)
         return Decisions.ANSWER_LOOP
     elif decision == Decisions.WANNA_HELP:
@@ -209,13 +187,13 @@ def questions(update, context):
     # getting the node_id from user_data
     node_id = context.user_data.get("node_id", None)
     # here would be an call or the actual user
-    user_language = "English"
+    user_language = "english"
     if not node_id:
         # means first time entering this loop
         context.user_data["node_id"] = "0"
         # we add the answers to this dictionary. this way, we dont have keyerrors
         context.user_data["answers"] = {}
-        question = question_strings.get_question(user_language, graph.get_next_question("0"))
+        question = qa_strings.get_string(user_language, graph.get_next_question("0"))
         text = "Dear patient, we will try to help you as much as we can. This bot will ask a series of question now which will help understanding your case. First one: " + question
         # this means we get a dictionary. The key is the next nod id, the value another dict
         neighbors = graph.get_next_answer("0")
@@ -225,7 +203,7 @@ def questions(update, context):
             # questions. We are storing the answer_id as label attribute of edges
             answer_id = neighbors[neighbor_id]["label"]
             # now we translate
-            keyboard_list.append(answers.get_answer(user_language, answer_id))
+            keyboard_list.append(qa_strings.get_string(user_language, answer_id))
         update.message.reply_text(text, reply_markup=ReplyKeyboardMarkup(keyboard_list))
         return Decisions.ANSWER_LOOP
     # as explained above. We are doing this with the old answers to have them available for errors
@@ -236,20 +214,20 @@ def questions(update, context):
         # questions. We are storing the answer_id as label attribute of edges
         answer_id = neighbors[neighbor_id]["label"]
         # now we translate
-        keyboard.append(answers.get_answer(user_language, answer_id))
+        keyboard.append(qa_strings.get_string(user_language, answer_id))
     # this results in one row per egde/possible answer path. later one, we could replace this with math to make it 
     # look more consistence
     # this is going to be the node id of the next node, if it exists
     next_id = False
     for neighbor_id in neighbors:
         answer_id = neighbors[neighbor_id]["label"]
-        if update.message.text in answers.get_answer(user_language, answer_id):
+        if update.message.text in qa_strings.get_string(user_language, answer_id):
             next_id = neighbor_id
             break
     # this checks if the current node id is a multi choice one
     multi = graph.get_multichoice(node_id)
     # the keyword gets appended with the Finish word in the original language
-    finish = question_strings.get_question(user_language, "FINISH")
+    finish = qa_strings.get_string(user_language, "FINISH")
     # needs to be implemented here since finish doesnt match the answers, we have the ending of the multi selection
     if multi and update.message.text == finish:
         # we set the message text to all the answers given so far
@@ -294,7 +272,7 @@ def questions(update, context):
         result = ""
         for answer_id in context.user_data["answers"]:
             # answer_id is actually the node_id of the question
-            question = question_strings.get_question(user_language, graph.get_next_question(answer_id))
+            question = qa_strings.get_string(user_language, graph.get_next_question(answer_id))
             answer = context.user_data["answers"][answer_id]
             # possibility to add markdown if needed
             result += f"{question}: {answer}\n"
@@ -303,7 +281,7 @@ def questions(update, context):
         doctors_room(update, context)
         return ConversationHandler.END
     # this means we have to ask a question, so we get the answers to display them as keyboard
-    text = question_strings.get_question(user_language, next_question_id)
+    text = qa_strings.get_string(user_language, next_question_id)
     new_neighbors = graph.get_next_answer(next_id)
     keyboard = []
     for neighbor_id in new_neighbors:
@@ -311,7 +289,7 @@ def questions(update, context):
         # questions. We are storing the answer_id as label attribute of edges
         answer_id = new_neighbors[neighbor_id]["label"]
         # now we translate
-        keyboard.append(answers.get_answer(user_language, answer_id))
+        keyboard.append(qa_strings.get_string(user_language, answer_id))
     # this results in one row per egde/possible answer path. later one, we could replace this with math to make it 
     # look more consistence
     # sending the question
@@ -331,8 +309,6 @@ def forward(update, context):
         return ConversationHandler.END
     elif decision == Decisions.STRESSED_ANXIOUS:
         psychologists_room(update, context)
-    elif decision == Decisions.COUGH_FEVER:
-        doctors_room(update, context)
     elif decision == Decisions.WANNA_HELP:
         new_members_room(update, context)
 
@@ -419,7 +395,7 @@ conv_handler = ConversationHandler(
     states={
         Decisions.FEEL_OK: [
             MessageHandler(yesfilter, wanna_help),
-            MessageHandler(nofilter, cough)
+            MessageHandler(nofilter, medical_issue)
         ],
 
         Decisions.WANNA_HELP: [
@@ -427,7 +403,7 @@ conv_handler = ConversationHandler(
             MessageHandler(nofilter, bye)
         ],
 
-        Decisions.COUGH_FEVER: [
+        Decisions.MEDICAL: [
             MessageHandler(yesfilter, desc),
             MessageHandler(nofilter, stressed)
         ],
