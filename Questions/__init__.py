@@ -15,10 +15,9 @@ class Questions:
         self.reload_strings()
 
     def reload_strings(self):
-        for filename in path:
-            if filename.endswitch(".json"):
-                language = filename[:-5]
-                self.languages[language] = json.load(open(path + filename))
+        for file in list(path.glob('**/*.json')):
+            language = file.stem
+            self.languages[language] = json.load(file.open())
 
     def get_question(self, language, question_id):
         return self.languages[language][question_id]
