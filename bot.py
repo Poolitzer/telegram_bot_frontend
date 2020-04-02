@@ -15,7 +15,6 @@ Bot currently forwards all cases to:  https://t.me/humanbios (Bot has to be a me
 
 import logging
 import os
-import re
 from enum import IntEnum
 from functools import wraps
 
@@ -30,8 +29,32 @@ from conversationrequest import ConversationType
 from conversations import Conversations
 from demo import demo_conv_handler
 import graph
+from Questions import Questions
 
 conversations = Conversations()
+question_strings = Questions()
+
+
+# simulating the same for answers
+class Answers:
+
+    def __init__(self):
+        self.answer_dict = {"AGE_ANSWER": ["Under 40", "40-50", "51-60", "61-70", "71-80", "Over 80"],
+                            "LIVING_ANSWER": ["Living alone", "Living with people"],
+                            "CARETAKING_ANSWER": ["Yes", "No"],
+                            "CROWDED_WORKPLACE_ANSWER": ["Yes", "No"],
+                            "SMOKING_ANSWER": ["Yes", "No"],
+                            "GENDER_ANSWER_MALE": ["Male"],
+                            "GENDER_ANSWER_FEMALE": ["Female"],
+                            "PREGNANT_ANSWER": ["Yes", "No", "Maybe"],
+                            "CONFIRMED_CASE_ANSWER": ["Yes", "No"]}
+        self.language = {"English": self.answer_dict}
+
+    def get_answer(self, language, answer_id):
+        return self.language[language][answer_id]
+
+
+answers = Answers()
 
 # enable logging
 project_path = os.path.dirname(os.path.abspath(__file__))
@@ -89,7 +112,7 @@ class Decisions(IntEnum):
     WANNA_HELP = 5
     TELL_FRIENDS = 6
     CASE_DESC = 7
-    QUESTION_LOOP = 8
+    ANSWER_LOOP = 8
 
 
 yes_no_keyboard = ReplyKeyboardMarkup([["Yes", "No"]])
@@ -163,7 +186,7 @@ def desc(update, context):
                "Tell us also about your friends and family"
     elif decision == Decisions.COUGH_FEVER:
         questions(update, context)
-        return Decisions.QUESTION_LOOP
+        return Decisions.ANSWER_LOOP
     elif decision == Decisions.WANNA_HELP:
         text = "Welcome new member. We are so glad you’re here! Please provide a short description of what you would like to help with and what you can do. " \
                "Keep it brief and professional"
@@ -183,37 +206,65 @@ def bye(update, context):
 
 def questions(update, context):
     """Puts users in a question loop, based on the graph data"""
-    # doctors_room(update, context)
+    # getting the node_id from user_data
     node_id = context.user_data.get("node_id", None)
+    # here would be an call or the actual user
+    user_language = "English"
     if not node_id:
+        # means first time entering this loop
         context.user_data["node_id"] = "0"
+        # we add the answers to this dictionary. this way, we dont have keyerrors
         context.user_data["answers"] = {}
-        text = "Dear patient, we will try to help you as much as we can. This bot will ask a series of question now which will help understanding your case. First one: " + graph.get_next_question("0")
+        question = question_strings.get_question(user_language, graph.get_next_question("0"))
+        text = "Dear patient, we will try to help you as much as we can. This bot will ask a series of question now which will help understanding your case. First one: " + question
+        # this means we get a dictionary. The key is the next nod id, the value another dict
         neighbors = graph.get_next_answer("0")
-        keyboard = [neighbors[neighbor_id]["label"].split("|") for neighbor_id in neighbors]
-        update.message.reply_text(text, reply_markup=ReplyKeyboardMarkup(keyboard))
-        return Decisions.QUESTION_LOOP
+        keyboard_list = []
+        for neighbor_id in neighbors:
+            # now we have access to the dicts, each of them representing possible answers and leading to different
+            # questions. We are storing the answer_id as label attribute of edges
+            answer_id = neighbors[neighbor_id]["label"]
+            # now we translate
+            keyboard_list.append(answers.get_answer(user_language, answer_id))
+        update.message.reply_text(text, reply_markup=ReplyKeyboardMarkup(keyboard_list))
+        return Decisions.ANSWER_LOOP
+    # as explained above. We are doing this with the old answers to have them available for errors
     neighbors = graph.get_next_answer(node_id)
-    keyboard = [neighbors[neighbor_id]["label"].split("|") for neighbor_id in neighbors]
+    keyboard = []
+    for neighbor_id in neighbors:
+        # now we have access to the dicts, each of them representing possible answers and leading to different
+        # questions. We are storing the answer_id as label attribute of edges
+        answer_id = neighbors[neighbor_id]["label"]
+        # now we translate
+        keyboard.append(answers.get_answer(user_language, answer_id))
+    # this results in one row per egde/possible answer path. later one, we could replace this with math to make it 
+    # look more consistence
+    # this is going to be the node id of the next node, if it exists
     next_id = False
     for neighbor_id in neighbors:
-        pattern = neighbors[neighbor_id]["label"]
-        if re.match(pattern, update.message.text):
+        answer_id = neighbors[neighbor_id]["label"]
+        if update.message.text in answers.get_answer(user_language, answer_id):
             next_id = neighbor_id
             break
+    # this checks if the current node id is a multi choice one
     multi = graph.get_multichoice(node_id)
-    finish = "Finish"
-    # needs to be implemented here since finish doesnt match the pattern
+    # the keyword gets appended with the Finish word in the original language
+    finish = question_strings.get_question(user_language, "FINISH")
+    # needs to be implemented here since finish doesnt match the answers, we have the ending of the multi selection
     if multi and update.message.text == finish:
+        # we set the message text to all the answers given so far
         update.message.text = context.user_data["answers"][node_id]
         # we can do [0] since multiple choices are not allowed to have several edges
         next_id = list(neighbors)[0]
+        # this so the multi handler  doesnt handle the input anymore
         multi = False
     if not next_id:
+        # this means the send message was not one of the buttons
         text = "I am sorry, you need to press one of the buttons."
         update.message.reply_text(text, reply_markup=ReplyKeyboardMarkup(keyboard))
-        return Decisions.QUESTION_LOOP
+        return Decisions.ANSWER_LOOP
     if multi:
+        # we have an active multichoice questions
         if node_id in context.user_data["answers"]:
             # user could send manually a text from an old button we already have saved
             if update.message.text in context.user_data["answers"][node_id]:
@@ -221,9 +272,11 @@ def questions(update, context):
                 new_keyboard = [word for word in keyboard[0] if word not in context.user_data["answers"][node_id]]
                 new_keyboard.append(finish)
                 update.message.reply_text(text, reply_markup=ReplyKeyboardMarkup([new_keyboard]))
-                return Decisions.QUESTION_LOOP
+                return Decisions.ANSWER_LOOP
+            # storing the answers in a string, separated with a , 
             context.user_data["answers"][node_id] += f", {update.message.text}"
         else:
+            # first time saving the answers in user data 
             context.user_data["answers"][node_id] = update.message.text
         # we can do 0] since multiple choices are not allowed to have several edges
         new_keyboard = [word for word in keyboard[0] if word not in context.user_data["answers"][node_id]]
@@ -231,23 +284,41 @@ def questions(update, context):
         text = f"Since this is a multiple choice question, please press more options if you want to. Otherwise, " \
                f"press {finish}"
         update.message.reply_text(text, reply_markup=ReplyKeyboardMarkup([new_keyboard]))
-        return Decisions.QUESTION_LOOP
+        return Decisions.ANSWER_LOOP
+    # saving the answer as value to the node id of the question as key
     context.user_data["answers"][node_id] = update.message.text
-    text = graph.get_next_question(next_id)
-    if not text:
+    # we have to separate here since it can be false if we reached the end
+    next_question_id = graph.get_next_question(next_id)
+    if not next_question_id:
+        # this means we have reached an end of the graph
         result = ""
         for answer_id in context.user_data["answers"]:
-            question = graph.get_next_question(answer_id)
+            # answer_id is actually the node_id of the question
+            question = question_strings.get_question(user_language, graph.get_next_question(answer_id))
             answer = context.user_data["answers"][answer_id]
+            # possibility to add markdown if needed
             result += f"{question}: {answer}\n"
+        # we are overriding update.message.text so the doctor handler just works
         update.message.text = result
         doctors_room(update, context)
         return ConversationHandler.END
+    # this means we have to ask a question, so we get the answers to display them as keyboard
+    text = question_strings.get_question(user_language, next_question_id)
     new_neighbors = graph.get_next_answer(next_id)
-    keyboard = [new_neighbors[neighbor_id]["label"].split("|") for neighbor_id in new_neighbors]
+    keyboard = []
+    for neighbor_id in new_neighbors:
+        # now we have access to the dicts, each of them representing possible answers and leading to different
+        # questions. We are storing the answer_id as label attribute of edges
+        answer_id = new_neighbors[neighbor_id]["label"]
+        # now we translate
+        keyboard.append(answers.get_answer(user_language, answer_id))
+    # this results in one row per egde/possible answer path. later one, we could replace this with math to make it 
+    # look more consistence
+    # sending the question
     update.message.reply_text(text, reply_markup=ReplyKeyboardMarkup(keyboard))
+    # saving the new node id in user data
     context.user_data["node_id"] = next_id
-    return Decisions.QUESTION_LOOP
+    return Decisions.ANSWER_LOOP
 
 
 def forward(update, context):
@@ -369,7 +440,7 @@ conv_handler = ConversationHandler(
         Decisions.CASE_DESC: [
             MessageHandler(Filters.text, forward)
         ],
-        Decisions.QUESTION_LOOP: [
+        Decisions.ANSWER_LOOP: [
             MessageHandler(Filters.text & (~Filters.command), questions)
         ],
     },

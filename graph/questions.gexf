@@ -7,26 +7,29 @@
       </attribute>
     </attributes>
     <nodes>
-      <node id="0" label="How old are you?"/>
-      <node id="1" label="What is your current living situation?"/>
-      <node id="2" label="At least once a week, do you privately care for high-risk people?"/>
-      <node id="3" label="Do you work in one of the following areas?"/>
-      <node id="4" label="Do you smoke?"/>
-      <node id="5" label="Are you pregnant?"/>
-      <node id="6" label="Have you had close contact with a confirmed case??">
+      <node id="0" label="AGE_QUESTION"/>
+      <node id="1" label="LIVING_QUESTION"/>
+      <node id="2" label="CARETAKING_QUESTION"/>
+      <node id="3" label="CROWDED_WORKPLACE_QUESTION"/>
+      <node id="4" label="SMOKING_QUESTION"/>
+      <node id="5" label="GENDER_QUESTION"/>
+      <node id="6" label="PREGNANT_QUESTION"/>
+      <node id="7" label="CONFIRMED_CASE_QUESTION">
         <attvalues>
           <attvalue for="0" value="true"/>
         </attvalues>
       </node>
     </nodes>
     <edges>
-      <edge id="0" source="0" target="1" label="Under 40|40-50|51-60|61-70|71-80|Over 80"/>
-      <edge id="1" source="1" target="2" label="Living alone|Living with people"/>
-      <edge id="2" source="2" target="3" label="Yes|No"/>
-      <edge id="3" source="3" target="4" label="Medical field|Community facility|Somewhere else"/>
-      <edge id="4" source="4" target="5" label="Yes|No"/>
-      <edge id="5" source="5" target="6" label="Yes|No|I don't know"/>
-      <edge id="6" source="6" target="7" label="Yes|No"/>
+      <edge id="0" source="0" target="1" label="AGE_ANSWER"/>
+      <edge id="1" source="1" target="2" label="LIVING_ANSWER"/>
+      <edge id="2" source="2" target="3" label="CARETAKING_ANSWER"/>
+      <edge id="3" source="3" target="4" label="CROWDED_WORKPLACE_ANSWER"/>
+      <edge id="4" source="4" target="5" label="SMOKING_ANSWER"/>
+      <edge id="5" source="5" target="6" label="GENDER_ANSWER_FEMALE"/>
+      <edge id="6" source="5" target="7" label="GENDER_ANSWER_MALE"/>
+      <edge id="7" source="6" target="7" label="PREGNANT_ANSWER"/>
+      <edge id="8" source="7" target="8" label="CONFIRMED_CASE_ANSWER"/>
     </edges>
   </graph>
 </gexf>
