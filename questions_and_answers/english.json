@@ -1,7 +1,7 @@
 {
     "FINISH": "Finish",
     "AGE_QUESTION" : "How old are you?",
-    "AGE_ANSWER": ["Under 40", "40-50", "51-60", "61-70", "71-80", "Over 80"]
+    "AGE_ANSWER": ["Under 40", "40-50", "51-60", "61-70", "71-80", "Over 80"],
     "LIVING_QUESTION" : "Are you living alone at the moment?",
     "LIVING_ANSWER": ["Living alone", "Living with people"],
     "CARETAKING_QUESTION" : "Are you taking care of old or sick people?",
@@ -49,5 +49,5 @@
     "IMMUNSUPP_QUESTION" : "Are you taking immunosuppressants?",
     "IMMUNSUPP_ANSWER" : ["Yes", "No"],
     "VACCIN_QUESTION" : "Have you been vaccinated against the flu since October 2019?",
-    "VACCIN_ANSWER" : ["Yes", "No"],
+    "VACCIN_ANSWER" : ["Yes", "No"]
 }
