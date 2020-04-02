@@ -1,9 +1,11 @@
 {
+    "FINISH": "Finish",
     "AGE_QUESTION" : "How old are you?",
     "LIVING_QUESTION" : "Are you living alone at the moment?",
     "CARETAKING_QUESTION" : "Are you taking care of old or sick people?",
     "CROWDED_WORKPLACE_QUESTION" : "Are you working in a crowded place or have a lot of close contact with people in your job?",
     "SMOKING_QUESTION" : "Do you smoke?",
+    "GENDER_QUESTION": "Are you, medically speaking, a male or a female?",
     "PREGNANT_QUESTION" : "Are you pregnant?",
     "CONFIRMED_CASE_QUESTION" : "Have you had close contact with a confirmed case?",
     "FEVER_QUESTION" : "Remember the last 1-4 days: Did you have a fever (over 38°C)?",
