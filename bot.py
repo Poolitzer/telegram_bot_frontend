@@ -92,6 +92,7 @@ class Decisions(IntEnum):
     TELL_FRIENDS = 6
     CASE_DESC = 7
     ANSWER_LOOP = 8
+    DISCLAIMER = 9
 
 
 yes_no_keyboard = ReplyKeyboardMarkup([["Yes", "No"]])
@@ -125,6 +126,17 @@ def welcome(update, context):
     context.user_data["decision"] = None
     update.message.reply_text(text=text_greeting)
 
+    text_disclaimer = "Legal notice:\nThe use of this software does not replace medical treatment and does not provide diagnostic services. If you currently" \
+                      " feel seriously ill, call a doctor immediately.\n\nThe involved parties act in good faith to fulfill the first aid obligation and the duty " \
+                      "to care on a best effort basis.\n\n\nBy using this software, you agree not to hold liable any of the involved parties (specifically " \
+                      "including negligent homicide/assault).\n\nThe involved parties include but are not limited to:\n\n- the individuals or organizations " \
+                      "you interact with via this software (specifically including personnel with official medical training or expertise)\n- the developers " \
+                      "and maintainers of this software\n\n\nAre you agreeing to this disclaimer?"
+    update.message.reply_text(text=text_disclaimer, reply_markup=yes_no_keyboard)
+    return Decisions.DISCLAIMER
+
+
+def how_are_you(update, context):
     text_are_you_okay = "Are you feeling Ok?"
     update.message.reply_text(text=text_are_you_okay, reply_markup=yes_no_keyboard)
     return Decisions.FEEL_OK
@@ -394,6 +406,10 @@ nofilter = Filters.regex('^No$')
 conv_handler = ConversationHandler(
     entry_points=[CommandHandler("start", welcome)],
     states={
+        Decisions.DISCLAIMER: [
+            MessageHandler(yesfilter, how_are_you),
+            MessageHandler(nofilter, bye)
+        ],
         Decisions.FEEL_OK: [
             MessageHandler(yesfilter, wanna_help),
             MessageHandler(nofilter, medical_issue)
