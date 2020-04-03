@@ -34,7 +34,7 @@
     "HEADACHE_QUESTION" : "A headache?",
     "HEADACHE_ANSWER" : ["Yes", "No"],
     "BREATHING_QUESTION" : "Did you have problems breathing? For example, if: - walking or taking some stairs? - sitting or lying down? - when getting up from bed or a chair? If you have chronic lung disease, please take that into account.",
-    "BREATHING_QANSWER" : ["Yes", "No"],
+    "BREATHING_ANSWER" : ["Yes", "No"],
     "TASTE_SMELL_QUESTION" : "Have you had any taste and/or smell loss in the last 24 hours?",
     "TASTE_SMELL_ANSWER" : ["Yes", "No"],
     "LUNG_DISEASE_QUESTION" : "Have you been diagnosed with chronic lung disease by a doctor?",
