@@ -197,6 +197,7 @@ def questions(update, context):
         text = "Dear patient, we will try to help you as much as we can. This bot will ask a series of question now which will help understanding your case. First one: " + question
         # this means we get a dictionary. The key is the next nod id, the value another dict
         neighbors = graph.get_next_answer("0")
+        logger.error(neighbors)
         keyboard_list = []
         for neighbor_id in neighbors:
             # now we have access to the dicts, each of them representing possible answers and leading to different
@@ -215,7 +216,7 @@ def questions(update, context):
         answer_id = neighbors[neighbor_id]["label"]
         # now we translate
         keyboard.append(qa_strings.get_string(user_language, answer_id))
-    # this results in one row per egde/possible answer path. later one, we could replace this with math to make it 
+    # this results in one row per egde/possible answer path. later one, we could replace this with math to make it
     # look more consistence
     # this is going to be the node id of the next node, if it exists
     next_id = False
@@ -251,10 +252,10 @@ def questions(update, context):
                 new_keyboard.append(finish)
                 update.message.reply_text(text, reply_markup=ReplyKeyboardMarkup([new_keyboard]))
                 return Decisions.ANSWER_LOOP
-            # storing the answers in a string, separated with a , 
+            # storing the answers in a string, separated with a ,
             context.user_data["answers"][node_id] += f", {update.message.text}"
         else:
-            # first time saving the answers in user data 
+            # first time saving the answers in user data
             context.user_data["answers"][node_id] = update.message.text
         # we can do 0] since multiple choices are not allowed to have several edges
         new_keyboard = [word for word in keyboard[0] if word not in context.user_data["answers"][node_id]]
@@ -290,7 +291,7 @@ def questions(update, context):
         answer_id = new_neighbors[neighbor_id]["label"]
         # now we translate
         keyboard.append(qa_strings.get_string(user_language, answer_id))
-    # this results in one row per egde/possible answer path. later one, we could replace this with math to make it 
+    # this results in one row per egde/possible answer path. later one, we could replace this with math to make it
     # look more consistence
     # sending the question
     update.message.reply_text(text, reply_markup=ReplyKeyboardMarkup(keyboard))
